@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block title %}News{% endblock %}
+{% block body %}
+<h1>News</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="title">Title</label>
+  <input id="title" name="title" required>
+  <label for="tag">Tag for {news:tag}</label>
+  <input id="tag" name="tag">
+  <label for="body">Body</label>
+  <textarea id="body" name="body"></textarea>
+  <label class="check"><input type="checkbox" name="publish" value="yes"> Publish</label>
+  <p><button class="btn" type="submit">Save article</button></p>
+</form>
+<ul>
+  {% for post in posts %}
+  <li>{{ post.title }} · {{ post.tag or "no tag" }} · {% if post.is_published %}published{% else %}draft{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="id" value="{{ post.id }}">
+      <button type="submit">Delete</button>
+    </form>
+  </li>
+  {% else %}<li>No articles yet.</li>{% endfor %}
+</ul>
+{% endblock %}

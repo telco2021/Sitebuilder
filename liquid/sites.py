@@ -9,21 +9,41 @@ from sqlalchemy.orm import Session
 
 from liquid.constants import FEATURE_KEYS
 from liquid.models import (
+    Banner,
+    CalendarEvent,
     CancellationLog,
     Category,
+    Coupon,
+    CouponCategory,
+    Course,
+    CourseQuestion,
     Customer,
+    Enrollment,
     FormDef,
     FormSubmission,
+    GalleryAlbum,
+    GalleryImage,
     HelpArticle,
     HotelProperty,
     Media,
+    Merchant,
+    NewsPost,
     Order,
     OrderLine,
     Page,
     Product,
+    QuizAttempt,
     Reservation,
     RoomType,
+    RvAccount,
+    RvCategory,
+    RvFavorite,
+    RvModel,
+    RvOffer,
+    ServiceOffer,
     Site,
+    SmsMessage,
+    Student,
 )
 from liquid.textutil import hex_color, one_line, slugify
 
@@ -75,6 +95,29 @@ def delete_site(db: Session, site: Site, upload_root: Path) -> None:
     reservation_ids = select(Reservation.id).where(Reservation.site_id == site.id)
     order_ids = select(Order.id).where(Order.site_id == site.id)
     form_ids = select(FormDef.id).where(FormDef.site_id == site.id)
+    course_ids = select(Course.id).where(Course.site_id == site.id)
+    enrollment_ids = select(Enrollment.id).where(Enrollment.course_id.in_(course_ids))
+    model_ids = select(RvModel.id).where(RvModel.site_id == site.id)
+    album_ids = select(GalleryAlbum.id).where(GalleryAlbum.site_id == site.id)
+    db.execute(delete(QuizAttempt).where(QuizAttempt.enrollment_id.in_(enrollment_ids)))
+    db.execute(delete(Enrollment).where(Enrollment.course_id.in_(course_ids)))
+    db.execute(delete(CourseQuestion).where(CourseQuestion.course_id.in_(course_ids)))
+    db.execute(delete(Course).where(Course.site_id == site.id))
+    db.execute(delete(Student).where(Student.site_id == site.id))
+    db.execute(delete(RvFavorite).where(RvFavorite.model_id.in_(model_ids)))
+    db.execute(delete(RvOffer).where(RvOffer.model_id.in_(model_ids)))
+    db.execute(delete(RvModel).where(RvModel.site_id == site.id))
+    db.execute(update(RvCategory).where(RvCategory.site_id == site.id).values(parent_id=None))
+    db.execute(delete(RvCategory).where(RvCategory.site_id == site.id))
+    db.execute(delete(RvAccount).where(RvAccount.site_id == site.id))
+    db.execute(delete(Coupon).where(Coupon.site_id == site.id))
+    db.execute(delete(Merchant).where(Merchant.site_id == site.id))
+    db.execute(update(CouponCategory).where(CouponCategory.site_id == site.id).values(parent_id=None))
+    db.execute(delete(CouponCategory).where(CouponCategory.site_id == site.id))
+    db.execute(delete(GalleryImage).where(GalleryImage.album_id.in_(album_ids)))
+    db.execute(delete(GalleryAlbum).where(GalleryAlbum.site_id == site.id))
+    for extra in (NewsPost, Banner, CalendarEvent, ServiceOffer, SmsMessage):
+        db.execute(delete(extra).where(extra.site_id == site.id))
     db.execute(delete(CancellationLog).where(CancellationLog.reservation_id.in_(reservation_ids)))
     db.execute(delete(Reservation).where(Reservation.site_id == site.id))
     db.execute(delete(OrderLine).where(OrderLine.order_id.in_(order_ids)))

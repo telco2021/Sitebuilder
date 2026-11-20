@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}Courses{% endblock %}
+{% block body %}
+<h1>Courses</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="course">
+  <h2>Course</h2>
+  <label for="title">Title</label>
+  <input id="title" name="title" required>
+  <label for="summary">Summary</label>
+  <textarea id="summary" name="summary"></textarea>
+  <label class="check"><input type="checkbox" name="publish" value="yes"> Publish</label>
+  <p><button class="btn" type="submit">Save course</button></p>
+</form>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="question">
+  <h2>Question</h2>
+  <label for="course_id">Course</label>
+  <select id="course_id" name="course_id">{% for course in courses %}<option value="{{ course.id }}">{{ course.title }}</option>{% endfor %}</select>
+  <label for="prompt">Prompt</label>
+  <input id="prompt" name="prompt" required>
+  <label for="kind">Kind</label>
+  <select id="kind" name="kind"><option value="tf">True or false</option><option value="mcq">Multiple choice</option></select>
+  <label for="choices">Choices, one per line. Leave blank for true or false.</label>
+  <textarea id="choices" name="choices"></textarea>
+  <label for="correct">Correct choice, starting at 1</label>
+  <input id="correct" name="correct" value="1">
+  <p><button class="btn" type="submit">Add question</button></p>
+</form>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="student">
+  <h2>Student</h2>
+  <label for="name">Name</label>
+  <input id="name" name="name">
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required>
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" required>
+  <label for="enroll">Enroll in</label>
+  <select id="enroll" name="course_id"><option value="">None</option>{% for course in courses %}<option value="{{ course.id }}">{{ course.title }}</option>{% endfor %}</select>
+  <p><button class="btn" type="submit">Create student</button></p>
+</form>
+<ul>
+  {% for course in courses %}<li>{{ course.title }} · {% if course.is_published %}published{% else %}draft{% endif %}</li>{% else %}<li>No courses yet.</li>{% endfor %}
+  {% for student in students %}<li>{{ student.email }}</li>{% endfor %}
+</ul>
+{% endblock %}

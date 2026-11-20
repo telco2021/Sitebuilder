@@ -1,0 +1,36 @@
+{% extends "public/base.html" %}
+{% block title %}{{ heading }} · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>{{ heading }}</h1>
+{% if mode != 'register' %}
+<form class="card" method="post" action="{{ action }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="login">
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required>
+  <label for="password">Password</label>
+  <input id="password" name="password" type="password" required>
+  <p><button class="btn" type="submit">Sign in</button></p>
+</form>
+{% endif %}
+{% if mode != 'login' %}
+<form class="card" method="post" action="{{ action }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="register">
+  <h2>Create an account</h2>
+  <label for="name">Name</label>
+  <input id="name" name="name" required>
+  <label for="reg-email">Email</label>
+  <input id="reg-email" name="email" type="email" required>
+  <label for="reg-password">Password</label>
+  <input id="reg-password" name="password" type="password" required>
+  {% if places %}
+  <label for="city">City</label>
+  <input id="city" name="city">
+  <label for="state">State</label>
+  <input id="state" name="state">
+  {% endif %}
+  <p><button class="btn" type="submit">Create account</button></p>
+</form>
+{% endif %}
+{% endblock %}

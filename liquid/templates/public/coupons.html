@@ -1,0 +1,24 @@
+{% extends "public/base.html" %}
+{% block title %}Coupons · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Coupons</h1>
+<form class="card" method="get">
+  <div class="row">
+    <div><label for="city">City</label><input id="city" name="city" value="{{ city }}"></div>
+    <div><label for="state">State</label><input id="state" name="state" value="{{ state }}"></div>
+  </div>
+  <p><button class="btn" type="submit">Search</button></p>
+</form>
+<p><a href="/s/{{ site.slug }}/coupons/signup">Request a merchant account</a> · <a href="/s/{{ site.slug }}/coupons/login">Merchant sign in</a></p>
+<div class="grid">
+  {% for item in items %}
+  <article class="card">
+    <h2>{{ item.title }}</h2>
+    {% if item.meta %}<p class="muted">{{ item.meta }}</p>{% endif %}
+    {{ item.html }}
+  </article>
+  {% else %}
+  <p>No coupons match.</p>
+  {% endfor %}
+</div>
+{% endblock %}

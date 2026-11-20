@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}Coupons{% endblock %}
+{% block body %}
+<h1>Coupons</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="category">
+  <h2>Category</h2>
+  <label for="cat-name">Name</label>
+  <input id="cat-name" name="name" required>
+  <p><button class="btn" type="submit">Add category</button></p>
+</form>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="coupon">
+  <h2>Coupon</h2>
+  <label for="title">Title</label>
+  <input id="title" name="title" required>
+  <label for="category_id">Category</label>
+  <select id="category_id" name="category_id"><option value="">None</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select>
+  <div class="row">
+    <div><label for="city">City</label><input id="city" name="city"></div>
+    <div><label for="state">State</label><input id="state" name="state"></div>
+    <div><label for="expires_on">Expires</label><input id="expires_on" name="expires_on" type="date"></div>
+  </div>
+  <label for="details">Details</label>
+  <textarea id="details" name="details"></textarea>
+  <label class="check"><input type="checkbox" name="publish" value="yes"> Publish</label>
+  <p><button class="btn" type="submit">Save coupon</button></p>
+</form>
+<h2>Merchants</h2>
+<ul>
+  {% for merchant in merchants %}
+  <li>{{ merchant.name }} · {{ merchant.email }} · {% if merchant.approved %}approved{% else %}waiting{% endif %}
+    {% if not merchant.approved %}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="approve"><input type="hidden" name="id" value="{{ merchant.id }}"><button type="submit">Approve</button></form>
+    {% endif %}
+  </li>
+  {% else %}<li>No merchant requests.</li>{% endfor %}
+</ul>
+<h2>Coupons</h2>
+<ul>
+  {% for coupon in coupons %}
+  <li>{{ coupon.title }} · {% if coupon.is_published %}published{% else %}draft{% endif %}
+    {% if not coupon.is_published %}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="publish"><input type="hidden" name="id" value="{{ coupon.id }}"><button type="submit">Publish</button></form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

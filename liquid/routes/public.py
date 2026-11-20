@@ -18,6 +18,7 @@ from liquid.db import get_db
 from liquid.access import field, posted
 from liquid.audit import audit
 from liquid.constants import CARD_BRANDS, COUNTRIES, FEATURE_KEYS
+from liquid.content import embed_news
 from liquid.files import media_path
 from liquid.hotel import (
     cancel_reservation,
@@ -189,7 +190,7 @@ def site_home(slug: str, request: Request, db: Session = Depends(get_db)):
         request,
         "public/page.html",
         page=page,
-        body=Markup(sanitize_html(page.live_body)),
+        body=Markup(embed_news(db, site, sanitize_html(page.live_body))),
         **_context(request, db, site),
     )
 
@@ -642,7 +643,7 @@ def site_page(slug: str, page_slug: str, request: Request, db: Session = Depends
         request,
         "public/page.html",
         page=page,
-        body=Markup(sanitize_html(page.live_body)),
+        body=Markup(embed_news(db, site, sanitize_html(page.live_body))),
         **_context(request, db, site),
     )
 

@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}Services{% endblock %}
+{% block body %}
+<h1>Services</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="name">Name</label>
+  <input id="name" name="name" required>
+  <label for="postal_codes">Postal codes, separated by commas</label>
+  <input id="postal_codes" name="postal_codes" required>
+  <label for="details">Details</label>
+  <textarea id="details" name="details"></textarea>
+  <p><button class="btn" type="submit">Save service</button></p>
+</form>
+<ul>
+  {% for service in services %}
+  <li>{{ service.name }} · {{ service.postal_codes|join(", ") }}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ service.id }}"><button type="submit">Delete</button></form>
+  </li>
+  {% else %}<li>No services yet.</li>{% endfor %}
+</ul>
+{% endblock %}

@@ -18,6 +18,7 @@ from liquid.db import init_db, make_engine, session_factory
 from liquid.render import flash, redirect, render
 from liquid.routes.admin import router as admin_router
 from liquid.routes.public import router as public_router
+from liquid.routes.stack import router as stack_router
 from liquid.security import SecurityMiddleware
 from liquid.seed import seed
 
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityMiddleware, settings=settings)
     static_dir = Path(__file__).resolve().parent / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    app.include_router(stack_router)
     app.include_router(public_router)
     app.include_router(admin_router)
 

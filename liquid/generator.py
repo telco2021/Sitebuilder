@@ -11,9 +11,32 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from liquid.content import embed_news
 from liquid.files import media_path
-from liquid.models import Category, FormDef, HelpArticle, HotelProperty, Media, Page, Product, RoomType, Site
+from liquid.models import (
+    Banner,
+    CalendarEvent,
+    Category,
+    Coupon,
+    Course,
+    CourseQuestion,
+    FormDef,
+    GalleryAlbum,
+    GalleryImage,
+    HelpArticle,
+    HotelProperty,
+    Media,
+    NewsPost,
+    Page,
+    Product,
+    RoomType,
+    RvCategory,
+    RvModel,
+    ServiceOffer,
+    Site,
+)
 from liquid.sites import clean_features
+from liquid.textutil import sanitize_html
 
 _BLUEPRINT = Path(__file__).resolve().parent / "blueprint"
 _MEDIA_URL = re.compile(r"/media/(\d+)")
@@ -47,7 +70,7 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
             {
                 "slug": page.slug,
                 "title": page.live_title,
-                "body": rewrite(page.live_body),
+                "body": rewrite(embed_news(db, site, sanitize_html(page.live_body))),
                 "keywords": page.live_keywords,
                 "description": page.live_description,
                 "show_in_nav": page.show_in_nav,
@@ -119,6 +142,55 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
             select(HelpArticle).where(HelpArticle.site_id == site.id, HelpArticle.audience == "public").order_by(HelpArticle.id)
         ).all()
     ]
+    news = [
+        {"slug": row.slug, "title": row.title, "tag": row.tag or "", "body": sanitize_html(row.body)}
+        for row in db.scalars(select(NewsPost).where(NewsPost.site_id == site.id, NewsPost.is_published.is_(True)).order_by(NewsPost.id)).all()
+    ]
+    banners = [
+        {"name": row.name, "target_url": row.target_url, "image": id_to_file.get(row.image_id, "") if row.image_id else ""}
+        for row in db.scalars(select(Banner).where(Banner.site_id == site.id, Banner.active.is_(True)).order_by(Banner.sort_order)).all()
+    ]
+    events = [
+        {"title": row.title, "starts_on": row.starts_on.isoformat(), "ends_on": row.ends_on.isoformat(), "location": row.location, "body": sanitize_html(row.body)}
+        for row in db.scalars(select(CalendarEvent).where(CalendarEvent.site_id == site.id).order_by(CalendarEvent.starts_on)).all()
+    ]
+    services = [
+        {"name": row.name, "details": sanitize_html(row.details), "postal_codes": row.postal_codes}
+        for row in db.scalars(select(ServiceOffer).where(ServiceOffer.site_id == site.id).order_by(ServiceOffer.name)).all()
+    ]
+    courses = []
+    for course in db.scalars(select(Course).where(Course.site_id == site.id, Course.is_published.is_(True)).order_by(Course.title)).all():
+        courses.append(
+            {
+                "slug": course.slug,
+                "title": course.title,
+                "summary": sanitize_html(course.summary),
+                "questions": [
+                    {"prompt": question.prompt, "choices": question.choices}
+                    for question in db.scalars(select(CourseQuestion).where(CourseQuestion.course_id == course.id).order_by(CourseQuestion.sort_order, CourseQuestion.id)).all()
+                ],
+            }
+        )
+    coaches = [
+        {"slug": row.slug, "name": row.name, "year": row.year, "price_cents": row.price_cents, "summary": sanitize_html(row.summary)}
+        for row in db.scalars(select(RvModel).where(RvModel.site_id == site.id, RvModel.is_published.is_(True)).order_by(RvModel.name)).all()
+    ]
+    coach_categories = [
+        {"name": row.name, "slug": row.slug}
+        for row in db.scalars(select(RvCategory).where(RvCategory.site_id == site.id).order_by(RvCategory.name)).all()
+    ]
+    coupons = [
+        {"title": row.title, "city": row.city, "state": row.state, "details": sanitize_html(row.details), "expires_on": row.expires_on.isoformat() if row.expires_on else ""}
+        for row in db.scalars(select(Coupon).where(Coupon.site_id == site.id, Coupon.is_published.is_(True)).order_by(Coupon.title)).all()
+    ]
+    albums = []
+    for album in db.scalars(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id).order_by(GalleryAlbum.title)).all():
+        pictures = []
+        for image in db.scalars(select(GalleryImage).where(GalleryImage.album_id == album.id)).all():
+            filename = id_to_file.get(image.media_id, "")
+            if filename:
+                pictures.append({"file": filename, "caption": image.caption})
+        albums.append({"slug": album.slug, "title": album.title, "images": pictures})
     return {
         "format": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -147,6 +219,15 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
         "products": products,
         "forms": forms,
         "help": help_articles,
+        "news": news,
+        "banners": banners,
+        "events": events,
+        "services": services,
+        "courses": courses,
+        "coaches": coaches,
+        "coach_categories": coach_categories,
+        "coupons": coupons,
+        "albums": albums,
     }
 
 

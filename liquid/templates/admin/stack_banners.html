@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block title %}Banners{% endblock %}
+{% block body %}
+<h1>Banners</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="name">Name</label>
+  <input id="name" name="name" required>
+  <label for="target_url">Link</label>
+  <input id="target_url" name="target_url" required>
+  <label for="image_id">Image id from Files, optional</label>
+  <input id="image_id" name="image_id">
+  <div class="row">
+    <div><label for="starts_on">Starts</label><input id="starts_on" name="starts_on" type="date"></div>
+    <div><label for="ends_on">Ends</label><input id="ends_on" name="ends_on" type="date"></div>
+    <div><label for="sort_order">Order</label><input id="sort_order" name="sort_order" value="0"></div>
+  </div>
+  <label class="check"><input type="checkbox" name="active" value="yes" checked> Active</label>
+  <p><button class="btn" type="submit">Save banner</button></p>
+</form>
+<ul>
+  {% for banner in banners %}
+  <li>{{ banner.name }} · {{ banner.target_url }} · {% if banner.active %}active{% else %}hidden{% endif %}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ banner.id }}"><button type="submit">Delete</button></form>
+  </li>
+  {% else %}<li>No banners yet.</li>{% endfor %}
+</ul>
+{% endblock %}

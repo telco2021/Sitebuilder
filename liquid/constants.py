@@ -10,6 +10,16 @@ FEATURES: tuple[tuple[str, str, str, str], ...] = (
     ("accounts", "Customer accounts", "Commerce", "Visitor registration and sign-in."),
     ("catalog", "Catalog and checkout", "Commerce", "Products, cart, and orders."),
     ("hotel", "Hotel reservations", "Hospitality", "Rooms, availability, booking, and cancellation."),
+    ("news", "News", "Content", "Published articles. A page can include one with {news:tag}."),
+    ("banners", "Banners", "Content", "Campaign links and images, managed by staff."),
+    ("calendar", "Calendar", "Content", "Dated events."),
+    ("services", "Services", "Content", "Services matched to a postal code."),
+    ("gallery", "Gallery", "Content", "Albums of files already uploaded to the site."),
+    ("share", "Tell a friend", "Content", "Queue a short note to someone. It stays on this server."),
+    ("lms", "Courses", "Learning", "Courses, enrolled students, and graded quizzes."),
+    ("rv", "RV coaches", "Inventory", "Coach categories, models, favorites, and offers."),
+    ("coupons", "Coupons", "Commerce", "Offers by city and state. Merchants wait for approval."),
+    ("sms", "Messages", "Desk", "A local message queue. Nothing is sent to a phone network."),
 )
 
 FEATURE_KEYS = tuple(item[0] for item in FEATURES)
@@ -29,6 +39,16 @@ RESERVED_PAGE_SLUGS = frozenset(
         "admin",
         "api",
         "orders",
+        "news",
+        "banners",
+        "calendar",
+        "services",
+        "gallery",
+        "share",
+        "learn",
+        "coaches",
+        "coupons",
+        "messages",
     }
 )
 

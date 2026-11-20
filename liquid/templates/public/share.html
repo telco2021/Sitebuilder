@@ -1,0 +1,16 @@
+{% extends "public/base.html" %}
+{% block title %}Tell a friend · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Tell a friend</h1>
+<p class="muted">The note is queued on this server. It is not delivered by itself.</p>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="email">Their email</label>
+  <input id="email" name="email" type="email" required>
+  <label for="page">Page address</label>
+  <input id="page" name="page" maxlength="60">
+  <label for="note">Note</label>
+  <textarea id="note" name="note"></textarea>
+  <p><button class="btn" type="submit">Queue the note</button></p>
+</form>
+{% endblock %}

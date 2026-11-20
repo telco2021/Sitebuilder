@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block body %}
+<h1>Calendar</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="title">Title</label>
+  <input id="title" name="title" required>
+  <div class="row">
+    <div><label for="starts_on">Starts</label><input id="starts_on" name="starts_on" type="date" required></div>
+    <div><label for="ends_on">Ends</label><input id="ends_on" name="ends_on" type="date"></div>
+    <div><label for="location">Location</label><input id="location" name="location"></div>
+  </div>
+  <label for="body">Details</label>
+  <textarea id="body" name="body"></textarea>
+  <p><button class="btn" type="submit">Save event</button></p>
+</form>
+<ul>
+  {% for event in events %}
+  <li>{{ event.starts_on }} · {{ event.title }}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ event.id }}"><button type="submit">Delete</button></form>
+  </li>
+  {% else %}<li>No events yet.</li>{% endfor %}
+</ul>
+{% endblock %}

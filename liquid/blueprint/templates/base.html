@@ -17,6 +17,14 @@
       {% for item in nav %}
       <a href="{% if item.slug == 'home' %}/{% else %}/{{ item.slug }}{% endif %}">{{ item.title }}</a>
       {% endfor %}
+      {% if features.news %}<a href="/news">News</a>{% endif %}
+      {% if features.banners %}<a href="/banners">Banners</a>{% endif %}
+      {% if features.calendar %}<a href="/calendar">Calendar</a>{% endif %}
+      {% if features.services %}<a href="/services">Services</a>{% endif %}
+      {% if features.gallery %}<a href="/gallery">Gallery</a>{% endif %}
+      {% if features.lms %}<a href="/learn">Courses</a>{% endif %}
+      {% if features.rv %}<a href="/coaches">Coaches</a>{% endif %}
+      {% if features.coupons %}<a href="/coupons">Coupons</a>{% endif %}
       {% if features.hotel %}<a href="/hotel">Reserve</a>{% endif %}
       {% if features.search %}<a href="/search">Search</a>{% endif %}
     </div>

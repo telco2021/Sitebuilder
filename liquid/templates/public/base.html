@@ -28,6 +28,15 @@
           <a class="child" href="/s/{{ site.slug }}/{{ child.slug }}">{{ child.live_title }}</a>
         {% endfor %}
       {% endfor %}
+      {% if features.news %}<a href="/s/{{ site.slug }}/news">News</a>{% endif %}
+      {% if features.banners %}<a href="/s/{{ site.slug }}/banners">Banners</a>{% endif %}
+      {% if features.calendar %}<a href="/s/{{ site.slug }}/calendar">Calendar</a>{% endif %}
+      {% if features.services %}<a href="/s/{{ site.slug }}/services">Services</a>{% endif %}
+      {% if features.gallery %}<a href="/s/{{ site.slug }}/gallery">Gallery</a>{% endif %}
+      {% if features.lms %}<a href="/s/{{ site.slug }}/learn">Courses</a>{% endif %}
+      {% if features.rv %}<a href="/s/{{ site.slug }}/coaches">Coaches</a>{% endif %}
+      {% if features.coupons %}<a href="/s/{{ site.slug }}/coupons">Coupons</a>{% endif %}
+      {% if features.share %}<a href="/s/{{ site.slug }}/share">Tell a friend</a>{% endif %}
       {% if features.hotel %}<a href="/s/{{ site.slug }}/hotel">Reserve</a><a href="/s/{{ site.slug }}/hotel/cancel">Cancel</a>{% endif %}
       {% if features.catalog %}<a href="/s/{{ site.slug }}/shop">Shop</a><a href="/s/{{ site.slug }}/cart">Cart</a>{% endif %}
       {% if features.help %}<a href="/s/{{ site.slug }}/help">Help</a>{% endif %}

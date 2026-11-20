@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from urllib.parse import urlparse
 
 import bleach
 from email_validator import EmailNotValidError, validate_email
@@ -102,6 +103,14 @@ def redact_secrets(value: str) -> str:
 
 _EMAIL = re.compile(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}")
 _OFFLINE_TLDS = (".local", ".localhost", ".test", ".example", ".invalid")
+
+
+def http_url(value: object) -> str:
+    text = one_line(value, 300)
+    parsed = urlparse(text)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+        raise FormError("Use an http or https link.")
+    return text
 
 
 def parse_email(value: object) -> str:

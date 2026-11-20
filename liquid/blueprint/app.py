@@ -21,7 +21,7 @@ from starlette.responses import Response
 from fastapi.staticfiles import StaticFiles
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from markupsafe import Markup
+from markupsafe import Markup, escape
 from starlette.datastructures import Headers, MutableHeaders
 
 ROOT = Path(__file__).resolve().parent
@@ -380,9 +380,94 @@ def confirmation(code: str, request: Request):
     return render(request, "confirm.html", reservation=reservation)
 
 
+def _records(kind: str) -> list:
+    return BUNDLE.get(kind) or []
+
+
+@app.get("/news", response_class=HTMLResponse)
+def generated_news(request: Request):
+    if not feature("news"):
+        return HTMLResponse("Not found", status_code=404)
+    return render(request, "records.html", heading="News", items=[{"title": row["title"], "html": Markup(row["body"])} for row in _records("news")])
+
+
+@app.get("/banners", response_class=HTMLResponse)
+def generated_banners(request: Request):
+    if not feature("banners"):
+        return HTMLResponse("Not found", status_code=404)
+    items = []
+    for row in _records("banners"):
+        if not str(row.get("target_url", "")).startswith(("http://", "https://")):
+            continue
+        items.append({"title": row["name"], "href": row["target_url"]})
+    return render(request, "records.html", heading="Banners", items=items)
+
+
+@app.get("/calendar", response_class=HTMLResponse)
+def generated_calendar(request: Request):
+    if not feature("calendar"):
+        return HTMLResponse("Not found", status_code=404)
+    items = [{"title": row["title"], "meta": f"{row['starts_on']} {row.get('location', '')}", "html": Markup(row.get("body", ""))} for row in _records("events")]
+    return render(request, "records.html", heading="Calendar", items=items)
+
+
+@app.get("/services", response_class=HTMLResponse)
+def generated_services(request: Request, q: str = ""):
+    if not feature("services"):
+        return HTMLResponse("Not found", status_code=404)
+    query = q.strip().upper()
+    rows = _records("services")
+    if query:
+        rows = [row for row in rows if query in {code.upper() for code in row.get("postal_codes", [])}]
+    items = [{"title": row["name"], "meta": ", ".join(row.get("postal_codes", [])), "html": Markup(row.get("details", ""))} for row in rows]
+    return render(request, "records.html", heading="Services", items=items)
+
+
+@app.get("/learn", response_class=HTMLResponse)
+def generated_learn(request: Request):
+    if not feature("lms"):
+        return HTMLResponse("Not found", status_code=404)
+    items = []
+    for course in _records("courses"):
+        prompts = "".join(f"<p>{escape(question.get('prompt', ''))}</p>" for question in course.get("questions", []))
+        items.append({"title": course["title"], "html": Markup(course.get("summary", "") + prompts)})
+    return render(request, "records.html", heading="Courses", items=items)
+
+
+@app.get("/coaches", response_class=HTMLResponse)
+def generated_coaches(request: Request):
+    if not feature("rv"):
+        return HTMLResponse("Not found", status_code=404)
+    items = [{"title": row["name"], "meta": str(row.get("year", "")), "html": Markup(row.get("summary", ""))} for row in _records("coaches")]
+    return render(request, "records.html", heading="Coaches", items=items)
+
+
+@app.get("/coupons", response_class=HTMLResponse)
+def generated_coupons(request: Request):
+    if not feature("coupons"):
+        return HTMLResponse("Not found", status_code=404)
+    items = [{"title": row["title"], "meta": f"{row.get('city', '')} {row.get('state', '')}", "html": Markup(row.get("details", ""))} for row in _records("coupons")]
+    return render(request, "records.html", heading="Coupons", items=items)
+
+
+@app.get("/gallery", response_class=HTMLResponse)
+def generated_gallery(request: Request):
+    if not feature("gallery"):
+        return HTMLResponse("Not found", status_code=404)
+    items = []
+    for album in _records("albums"):
+        pictures = "".join(
+            f'<p><img src="/media/{image["file"]}" alt=""></p>'
+            for image in album.get("images", [])
+            if re.fullmatch(r"[a-f0-9]{32}\.(png|jpg|jpeg|gif|webp)", image.get("file", ""))
+        )
+        items.append({"title": album["title"], "html": Markup(pictures)})
+    return render(request, "records.html", heading="Gallery", items=items)
+
+
 @app.get("/{slug}", response_class=HTMLResponse)
 def site_page(slug: str, request: Request):
-    if slug in {"hotel", "search", "static", "media"}:
+    if slug in {"hotel", "search", "static", "media", "news", "banners", "calendar", "services", "gallery", "learn", "coaches", "coupons"}:
         return HTMLResponse("Not found", status_code=404)
     page = page_by_slug(slug)
     if page is None:

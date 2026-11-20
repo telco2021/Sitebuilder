@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% block title %}Messages{% endblock %}
+{% block body %}
+<h1>Messages</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<p class="muted">A message stays in this queue. Sitebuilder does not hand it to a phone carrier.</p>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="phone">Phone</label>
+  <input id="phone" name="phone" required>
+  <label for="body">Message, 140 characters</label>
+  <textarea id="body" name="body" maxlength="140" required></textarea>
+  <p><button class="btn" type="submit">Queue message</button></p>
+</form>
+<ul>
+  {% for message in messages %}
+  <li>{{ message.created_at }} · {{ message.phone }} · {{ message.status }} · {{ message.body }}</li>
+  {% else %}<li>The queue is empty.</li>{% endfor %}
+</ul>
+{% endblock %}

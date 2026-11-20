@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>{{ heading }}</h1>
+{% for item in items %}
+<article class="card">
+  <h2>{% if item.href %}<a href="{{ item.href }}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</h2>
+  {% if item.meta %}<p class="muted">{{ item.meta }}</p>{% endif %}
+  {% if item.html %}{{ item.html }}{% endif %}
+</article>
+{% else %}
+<p>Nothing is published yet.</p>
+{% endfor %}
+{% endblock %}

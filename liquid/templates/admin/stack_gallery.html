@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}Gallery{% endblock %}
+{% block body %}
+<h1>Gallery</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="album">
+  <label for="title">Album title</label>
+  <input id="title" name="title" required>
+  <p><button class="btn" type="submit">Create album</button></p>
+</form>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="image">
+  <label for="album_id">Album</label>
+  <select id="album_id" name="album_id">{% for album in albums %}<option value="{{ album.id }}">{{ album.title }}</option>{% endfor %}</select>
+  <label for="media_id">Image</label>
+  <select id="media_id" name="media_id">{% for item in media %}<option value="{{ item.id }}">{{ item.original_name }}</option>{% endfor %}</select>
+  <label for="caption">Caption</label>
+  <input id="caption" name="caption">
+  <p><button class="btn" type="submit">Add image</button></p>
+</form>
+{% endblock %}

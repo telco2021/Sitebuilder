@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset password · Liquid Software</title>
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <div class="login">
+    <form class="card" method="post" action="/admin/forgot">
+      <h1>Reset</h1>
+      <p class="muted">If the account exists, the reset link is queued for the owner outbox. The password is never emailed.</p>
+      {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required>
+      <p><button class="btn" type="submit">Queue reset</button> <a href="/admin/login">Back</a></p>
+    </form>
+  </div>
+</body>
+</html>

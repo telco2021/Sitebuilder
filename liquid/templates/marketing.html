@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liquid Software</title>
+  <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+  <section class="platform">
+    <div class="hero">
+      <p class="tag">Sitebuilder</p>
+      <h1>Build the site. Generate the software that runs it.</h1>
+      <p>Liquid Software is the administrative desk for composing a site from features — pages, files, forms, a catalog, and hotel reservations — and writing a deployable Python package.</p>
+      <p>
+        <a class="btn" href="/admin">Open Sitebuilder</a>
+        {% if gateway %}<a class="btn secondary" href="/s/gateway" style="color:#f4ecdf;border-color:#6d6458">Preview Gateway Hotel</a>{% endif %}
+      </p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="wrap">
+      <article>
+        <h2>Compose</h2>
+        <p>Draft pages, publish them, or revert a draft back to the live copy. Menus come from the page tree.</p>
+      </article>
+      <article>
+        <h2>Choose features</h2>
+        <p>Turn on only what the site needs. Hotel inventory, a catalog, forms, and customer accounts are separate modules.</p>
+      </article>
+      <article>
+        <h2>Generate</h2>
+        <p>Download a folder you can run with Uvicorn or Waitress. Bookings made on the deployed site stay in that site's own database.</p>
+      </article>
+    </div>
+  </section>
+</body>
+</html>

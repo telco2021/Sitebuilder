@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% block title %}Outbox{% endblock %}
+{% block body %}
+<h1>Outbox</h1>
+<p class="muted">Mail waits here until a mail service drains the queue. Reset links are visible to owners so this install can run without SMTP. Do not expose the owner account.</p>
+{% for message in messages %}
+<article class="card">
+  <p><strong>{{ message.subject }}</strong><br>{{ message.recipient }}</p>
+  {% if show_body %}<pre>{{ message.body }}</pre>{% else %}<p class="muted">Message bodies are hidden in production.</p>{% endif %}
+</article>
+{% else %}
+<p>The outbox is empty.</p>
+{% endfor %}
+{% endblock %}

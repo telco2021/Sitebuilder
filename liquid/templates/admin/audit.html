@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+{% block title %}Audit{% endblock %}
+{% block body %}
+<h1>Audit</h1>
+<table>
+  <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th></tr>
+  {% for event in events %}
+  <tr>
+    <td>{{ event.created_at }}</td>
+    <td>{{ event.actor_email }}</td>
+    <td>{{ event.action }}</td>
+    <td>{{ event.target }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "public/base.html" %}
+{% block title %}Shop · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Shop</h1>
+<div class="grid">
+  {% for product in products %}
+  <article class="card">
+    <h2><a href="/s/{{ site.slug }}/shop/{{ product.slug }}">{{ product.name }}</a></h2>
+    <p class="price">{{ product.price_cents|money(site.currency) }}</p>
+    <p class="muted">{{ product.stock }} in stock</p>
+  </article>
+  {% else %}
+  <p>Nothing is for sale yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

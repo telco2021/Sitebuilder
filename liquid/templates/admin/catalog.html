@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}Catalog{% endblock %}
+{% block body %}
+<h1>Catalog</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="category">
+  <label for="category_name">New category</label>
+  <input id="category_name" name="category_name">
+  <p><button class="btn secondary" type="submit">Add category</button></p>
+</form>
+<form class="card" method="post">
+  <h2>Product</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="product_id" value="0">
+  <label for="name">Name</label>
+  <input id="name" name="name" required>
+  <label for="category_id">Category</label>
+  <select id="category_id" name="category_id">
+    <option value="0">None</option>
+    {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+  </select>
+  <div class="row">
+    <div><label for="price">Price ({{ site.currency }})</label><input id="price" name="price" value="0"></div>
+    <div><label for="stock">Stock</label><input id="stock" name="stock" value="0"></div>
+  </div>
+  <label for="description">Description</label>
+  <textarea id="description" name="description"></textarea>
+  <label class="check"><input type="checkbox" name="active" value="yes" checked> Active</label>
+  <p><button class="btn" type="submit">Save product</button></p>
+</form>
+<table>
+  <tr><th>Product</th><th>Price</th><th>Stock</th></tr>
+  {% for product in products %}
+  <tr>
+    <td>{{ product.name }} {% if not product.active %}<span class="badge">Hidden</span>{% endif %}</td>
+    <td>{{ product.price_cents|money(site.currency) }}</td>
+    <td>{{ product.stock }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

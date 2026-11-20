@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block title %}New site{% endblock %}
+{% block body %}
+<h1>New site</h1>
+<form class="card" method="post" action="/admin/sites/new">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="name">Site name</label>
+  <input id="name" name="name" required>
+  <div class="row">
+    <div><label for="company_name">Company</label><input id="company_name" name="company_name"></div>
+    <div><label for="domain">Domain label</label><input id="domain" name="domain" placeholder="example.com"></div>
+  </div>
+  <label for="tagline">Tagline</label>
+  <input id="tagline" name="tagline">
+  <div class="row">
+    <div><label for="language">Language</label><input id="language" name="language" value="en"></div>
+    <div><label for="currency">Currency</label><input id="currency" name="currency" value="USD" maxlength="3"></div>
+  </div>
+  {% if user.role == "owner" %}
+  <h2>Features</h2>
+  {% for key, label, group, detail in features %}
+  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if key in ["cms", "menus", "search"] %}checked{% endif %}> {{ label }} — {{ detail }}</label>
+  {% endfor %}
+  {% else %}
+  <p class="muted">The site starts with pages, menus, and search. An owner can enable more features.</p>
+  {% endif %}
+  <p><button class="btn" type="submit">Create site</button></p>
+</form>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% block title %}Sites{% endblock %}
+{% block body %}
+<h1>Sites</h1>
+<p><a class="btn" href="/admin/sites/new">New site</a></p>
+<div class="grid">
+  {% for site, sections in cards %}
+  <article class="card">
+    <h2>{{ site.name }}</h2>
+    <p class="muted">{{ site.tagline or site.slug }}</p>
+    <p><a href="/s/{{ site.slug }}">Preview</a></p>
+    <p>
+      {% for label, path in sections %}
+      <a href="{{ path }}">{{ label }}</a>{% if not loop.last %} · {% endif %}
+      {% else %}
+      <span class="muted">No modules for this role.</span>
+      {% endfor %}
+    </p>
+  </article>
+  {% else %}
+  <p>No sites yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

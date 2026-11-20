@@ -1,0 +1,23 @@
+{% extends "public/base.html" %}
+{% block title %}Cart{% endblock %}
+{% block body %}
+<h1>Cart</h1>
+{% for item in items %}
+<form class="card" method="post" action="/s/{{ site.slug }}/cart">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="update">
+  <input type="hidden" name="product_id" value="{{ item.product.id }}">
+  <strong>{{ item.product.name }}</strong>
+  <p>{{ item.line|money(site.currency) }}</p>
+  <label>Quantity</label>
+  <input name="qty" value="{{ item.qty }}">
+  <p><button class="btn secondary" type="submit">Update</button></p>
+</form>
+{% else %}
+<p>The cart is empty.</p>
+{% endfor %}
+{% if items %}
+<p class="price">{{ subtotal|money(site.currency) }}</p>
+<p><a class="btn" href="/s/{{ site.slug }}/checkout">Checkout</a></p>
+{% endif %}
+{% endblock %}

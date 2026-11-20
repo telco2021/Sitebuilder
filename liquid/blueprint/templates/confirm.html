@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ reservation["code"] }}{% endblock %}
+{% block body %}
+<h1>{{ reservation["code"] }}</h1>
+<p>{{ reservation["room_name"] }} · {{ reservation["status"] }}</p>
+<p>{{ reservation["check_in"] }} to {{ reservation["check_out"] }}</p>
+<p class="price">{{ reservation["total_cents"]|money }}</p>
+<p>{{ reservation["payment_brand"] }} ending {{ reservation["payment_last4"] }}</p>
+<p>{{ reservation["payment_reference"] }}</p>
+{% endblock %}

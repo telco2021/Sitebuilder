@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block body %}
+<h1>Search</h1>
+<form method="get" action="/search">
+  <input name="q" value="{{ query }}">
+  <p><button class="btn" type="submit">Search</button></p>
+</form>
+{% for page in results %}
+<article class="card"><h2><a href="/{{ page.slug }}">{{ page.title }}</a></h2></article>
+{% else %}
+{% if query %}<p>No pages matched.</p>{% endif %}
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "public/base.html" %}
+{% block title %}Reserve · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Reserve a room</h1>
+{% if property_row %}<p class="muted">{{ property_row.address1 }} {{ property_row.city }} {{ property_row.state }} {{ property_row.postcode }}</p>{% endif %}
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label for="check_in">Arrival</label><input id="check_in" name="check_in" type="date" min="{{ today }}" value="{{ stay.check_in if stay else '' }}" required></div>
+    <div><label for="check_out">Departure</label><input id="check_out" name="check_out" type="date" value="{{ stay.check_out if stay else '' }}" required></div>
+    <div><label for="rooms">Rooms</label><input id="rooms" name="rooms" value="{{ stay.rooms if stay else 1 }}" required></div>
+    <div><label for="adults">Adults</label><input id="adults" name="adults" value="{{ stay.adults if stay else 2 }}" required></div>
+    <div><label for="children">Children</label><input id="children" name="children" value="{{ stay.children if stay else 0 }}" required></div>
+  </div>
+  <p><button class="btn" type="submit">Check availability</button></p>
+</form>
+{% if offers %}
+<div class="grid">
+  {% for offer in offers %}
+  <article class="card">
+    <h2>{{ offer.room.name }}</h2>
+    <p>{{ offer.room.description }}</p>
+    <p>{{ offer.room.nightly_rate_cents|money(site.currency) }} a night · sleeps {{ offer.room.capacity }}</p>
+    <p>{{ offer.available }} available for these dates</p>
+    {% if offer.fits and offer.available >= stay.rooms %}
+    <p class="price">{{ offer.total|money(site.currency) }}</p>
+    <a class="btn" href="/s/{{ site.slug }}/hotel/book/{{ offer.room.id }}">Book</a>
+    {% elif not offer.fits %}
+    <p>This room cannot hold the whole party.</p>
+    {% else %}
+    <p>Not enough rooms are free.</p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

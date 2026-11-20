@@ -1,0 +1,10 @@
+{% extends "public/base.html" %}
+{% block title %}{{ page.live_title }} · {{ site.name }}{% endblock %}
+{% block meta %}
+{% if page.live_description %}<meta name="description" content="{{ page.live_description }}">{% endif %}
+{% if page.live_keywords %}<meta name="keywords" content="{{ page.live_keywords }}">{% endif %}
+{% endblock %}
+{% block body %}
+<h1>{{ page.live_title }}</h1>
+{{ body }}
+{% endblock %}

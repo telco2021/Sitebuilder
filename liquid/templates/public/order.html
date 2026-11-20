@@ -1,0 +1,13 @@
+{% extends "public/base.html" %}
+{% block title %}{{ order.number }}{% endblock %}
+{% block body %}
+<h1>{{ order.number }}</h1>
+<p>{{ order.first_name }} {{ order.last_name }} · {{ order.email }}</p>
+<ul>
+  {% for line in order.lines %}
+  <li>{{ line.quantity }} × {{ line.product_name }} · {{ line.unit_cents|money(site.currency) }}</li>
+  {% endfor %}
+</ul>
+<p class="price">{{ order.total_cents|money(site.currency) }}</p>
+<p>{{ order.payment_brand }} ending {{ order.payment_last4 }} · {{ order.payment_reference }}</p>
+{% endblock %}

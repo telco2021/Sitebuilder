@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sitebuilder{% endblock %} · Liquid Software</title>
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand">Liquid <span>Sitebuilder</span></div>
+      <nav>
+        <a href="/admin">Sites</a>
+        {% if user and user.role == "owner" %}<a href="/admin/users">Staff</a>{% endif %}
+        {% if user and user.role in ["owner", "publisher"] %}<a href="/admin/audit">Audit</a>{% endif %}
+        {% if user and user.role == "owner" %}<a href="/admin/outbox">Outbox</a>{% endif %}
+        <a href="/admin/account">Password</a>
+      </nav>
+      {% if user %}
+      <form method="post" action="/admin/logout">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn secondary" type="submit">Sign out</button>
+      </form>
+      <p class="muted">{{ user.display_name }} · {{ user.role }}</p>
+      {% endif %}
+    </aside>
+    <main class="main">
+      {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

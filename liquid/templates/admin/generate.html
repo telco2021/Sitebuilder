@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% block title %}Generate{% endblock %}
+{% block body %}
+<h1>Generate {{ site.name }}</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<div class="card">
+  <p>This writes a standalone Python site from published pages and the features that are turned on. Reservations created after deployment stay in that copy.</p>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn" type="submit">Generate source</button>
+  </form>
+  {% if ready %}<p><a href="/admin/sites/{{ site.id }}/download">Download {{ site.slug }}.zip</a></p>{% endif %}
+</div>
+{% endblock %}

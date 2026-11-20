@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}Pages{% endblock %}
+{% block body %}
+<h1>{{ site.name }}</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<p><a class="btn" href="/admin/sites/{{ site.id }}/pages/new">New page</a></p>
+<table>
+  <tr><th>Page</th><th>Address</th><th>State</th></tr>
+  {% for page in pages %}
+  <tr>
+    <td><a href="/admin/sites/{{ site.id }}/pages/{{ page.id }}">{{ page.draft_title }}</a></td>
+    <td>/{{ page.slug }}</td>
+    <td>
+      {% if not page.is_published %}<span class="badge">Draft</span>
+      {% elif page.dirty %}<span class="badge">Unpublished changes</span>
+      {% else %}<span class="badge">Live</span>{% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">No pages yet.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

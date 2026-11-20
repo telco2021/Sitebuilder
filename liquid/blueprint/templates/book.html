@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Book{% endblock %}
+{% block body %}
+<h1>{{ room.name }}</h1>
+<p>{{ stay.check_in }} to {{ stay.check_out }} · {{ nights }} nights</p>
+<p class="price">{{ total|money }}</p>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label>First name</label><input name="first_name" required></div>
+    <div><label>Last name</label><input name="last_name" required></div>
+    <div><label>Email</label><input name="email" required></div>
+    <div><label>Phone</label><input name="phone" required></div>
+  </div>
+  <label>Brand</label><input name="card_brand" value="Visa">
+  <label>Card number</label><input name="card_number" autocomplete="off" required>
+  <label>Expiry</label><input name="card_exp" placeholder="MM/YY" required>
+  <label>Security code</label><input name="card_cvv" autocomplete="off" required>
+  <p><button class="btn" type="submit">Confirm</button></p>
+</form>
+{% endblock %}

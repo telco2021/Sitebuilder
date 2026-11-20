@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+{% block title %}Submissions{% endblock %}
+{% block body %}
+<h1>{{ form_def.name }}</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+{% for row in submissions %}
+<article class="card">
+  <p class="muted">{{ row.created_at }}</p>
+  {% for key, value in row.payload.items() %}
+  <p><strong>{{ key }}</strong><br>{{ value }}</p>
+  {% endfor %}
+</article>
+{% else %}
+<p>No submissions yet.</p>
+{% endfor %}
+{% endblock %}

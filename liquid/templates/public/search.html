@@ -1,0 +1,17 @@
+{% extends "public/base.html" %}
+{% block title %}Search · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Search</h1>
+<form method="get" action="/s/{{ site.slug }}/search">
+  <input name="q" value="{{ query }}">
+  <p><button class="btn" type="submit">Search</button></p>
+</form>
+{% for result in results %}
+<article class="card">
+  <h2><a href="/s/{{ site.slug }}/{{ result.page.slug }}">{{ result.page.live_title }}</a></h2>
+  <p>{{ result.snippet }}</p>
+</article>
+{% else %}
+{% if query %}<p>No published pages matched.</p>{% endif %}
+{% endfor %}
+{% endblock %}

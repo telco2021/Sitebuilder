@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="{{ site.language or 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site.name }}{% endblock %}</title>
+  {% block meta %}{% endblock %}
+  <link rel="stylesheet" href="/static/site.css">
+  <style>:root { {{ theme }} }</style>
+</head>
+<body>
+  <header class="top">
+    <div class="inner">
+      <div>
+        <a class="brand" href="/s/{{ site.slug }}">{{ site.name }}</a>
+        {% if site.tagline %}<p class="tag">{{ site.tagline }}</p>{% endif %}
+      </div>
+      {% if features.search %}
+      <form method="get" action="/s/{{ site.slug }}/search">
+        <input name="q" aria-label="Search" placeholder="Search">
+      </form>
+      {% endif %}
+    </div>
+    <div class="inner nav">
+      {% for item in nav if not item.parent_id %}
+        <a href="{% if item.slug == 'home' %}/s/{{ site.slug }}{% else %}/s/{{ site.slug }}/{{ item.slug }}{% endif %}">{{ item.live_title }}</a>
+        {% for child in nav if child.parent_id == item.id %}
+          <a class="child" href="/s/{{ site.slug }}/{{ child.slug }}">{{ child.live_title }}</a>
+        {% endfor %}
+      {% endfor %}
+      {% if features.hotel %}<a href="/s/{{ site.slug }}/hotel">Reserve</a><a href="/s/{{ site.slug }}/hotel/cancel">Cancel</a>{% endif %}
+      {% if features.catalog %}<a href="/s/{{ site.slug }}/shop">Shop</a><a href="/s/{{ site.slug }}/cart">Cart</a>{% endif %}
+      {% if features.help %}<a href="/s/{{ site.slug }}/help">Help</a>{% endif %}
+      {% if features.accounts %}<a href="/s/{{ site.slug }}/account">{% if customer %}Account{% else %}Sign in{% endif %}</a>{% endif %}
+    </div>
+  </header>
+  <main class="wrap">
+    {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

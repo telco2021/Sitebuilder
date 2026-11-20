@@ -1,0 +1,15 @@
+{% extends "public/base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block body %}
+<h1>{{ product.name }}</h1>
+<p>{{ product.description }}</p>
+<p class="price">{{ product.price_cents|money(site.currency) }}</p>
+<form method="post" action="/s/{{ site.slug }}/cart">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="add">
+  <input type="hidden" name="product_id" value="{{ product.id }}">
+  <label for="qty">Quantity</label>
+  <input id="qty" name="qty" value="1">
+  <p><button class="btn" type="submit">Add to cart</button></p>
+</form>
+{% endblock %}

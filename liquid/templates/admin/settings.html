@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ site.name }} settings{% endblock %}
+{% block body %}
+<h1>{{ site.name }}</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/settings">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="name">Site name</label>
+  <input id="name" name="name" value="{{ site.name }}" required>
+  <div class="row">
+    <div><label for="company_name">Company</label><input id="company_name" name="company_name" value="{{ site.company_name }}"></div>
+    <div><label for="domain">Domain label</label><input id="domain" name="domain" value="{{ site.domain }}"></div>
+  </div>
+  <label for="tagline">Tagline</label>
+  <input id="tagline" name="tagline" value="{{ site.tagline }}">
+  <div class="row">
+    <div><label for="language">Language</label><input id="language" name="language" value="{{ site.language }}"></div>
+    <div><label for="currency">Currency</label><input id="currency" name="currency" value="{{ site.currency }}" maxlength="3"></div>
+    <div><label for="shipping_cents">Flat shipping (cents)</label><input id="shipping_cents" name="shipping_cents" value="{{ site.shipping_cents }}"></div>
+  </div>
+  <h2>Color palette</h2>
+  <div class="row">
+    <div><label for="color_ink">Ink</label><input id="color_ink" name="color_ink" value="{{ site.color_ink }}"></div>
+    <div><label for="color_paper">Paper</label><input id="color_paper" name="color_paper" value="{{ site.color_paper }}"></div>
+    <div><label for="color_accent">Accent</label><input id="color_accent" name="color_accent" value="{{ site.color_accent }}"></div>
+    <div><label for="color_header">Header</label><input id="color_header" name="color_header" value="{{ site.color_header }}"></div>
+    <div><label for="color_text">Text</label><input id="color_text" name="color_text" value="{{ site.color_text }}"></div>
+  </div>
+  {% if user.role == "owner" %}
+  <h2>Features</h2>
+  {% for key, label, group, detail in features %}
+  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if site.features.get(key) %}checked{% endif %}> {{ label }} <span class="muted">({{ group }})</span></label>
+  {% endfor %}
+  {% endif %}
+  <p><button class="btn" type="submit">Save settings</button></p>
+</form>
+{% if user.role == "owner" %}
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/delete">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>Delete this site</h2>
+  <label class="check"><input type="checkbox" name="confirm" value="yes"> Delete pages, reservations, and uploaded files.</label>
+  <button class="btn danger" type="submit">Delete site</button>
+</form>
+{% endif %}
+{% endblock %}

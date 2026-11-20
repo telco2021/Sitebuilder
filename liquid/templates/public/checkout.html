@@ -1,0 +1,31 @@
+{% extends "public/base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block body %}
+<h1>Checkout</h1>
+<p>Subtotal {{ subtotal|money(site.currency) }} · shipping {{ shipping|money(site.currency) }}</p>
+<p class="price">{{ total|money(site.currency) }}</p>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label>First name</label><input name="first_name" value="{{ customer.first_name if customer else '' }}" required></div>
+    <div><label>Last name</label><input name="last_name" value="{{ customer.last_name if customer else '' }}" required></div>
+    <div><label>Email</label><input name="email" type="email" value="{{ customer.email if customer else '' }}" required></div>
+    <div><label>Phone</label><input name="phone" required></div>
+  </div>
+  <label>Address</label><input name="address" required>
+  <div class="row">
+    <div><label>City</label><input name="city" required></div>
+    <div><label>State</label><input name="state" required></div>
+    <div><label>Postal code</label><input name="postal" required></div>
+    <div><label>Country</label><select name="country">{% for country in countries %}<option>{{ country }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="row">
+    <div><label>Brand</label><select name="card_brand">{% for brand in brands %}<option>{{ brand }}</option>{% endfor %}</select></div>
+    <div><label>Card number</label><input name="card_number" autocomplete="off" required></div>
+    <div><label>Expiry</label><input name="card_exp" placeholder="MM/YY" required></div>
+    <div><label>Security code</label><input name="card_cvv" autocomplete="off" required></div>
+  </div>
+  <label><input type="checkbox" name="agree" value="yes"> I agree to pay this total</label>
+  <p><button class="btn" type="submit">Place order</button></p>
+</form>
+{% endblock %}

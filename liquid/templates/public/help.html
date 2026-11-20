@@ -1,0 +1,13 @@
+{% extends "public/base.html" %}
+{% block title %}Help · {{ site.name }}{% endblock %}
+{% block body %}
+<h1>Help</h1>
+{% for article in articles %}
+<article class="card">
+  <h2>{{ article.title }}</h2>
+  <p>{{ article.body }}</p>
+</article>
+{% else %}
+<p>No help articles yet.</p>
+{% endfor %}
+{% endblock %}

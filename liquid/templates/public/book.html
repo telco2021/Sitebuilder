@@ -1,0 +1,39 @@
+{% extends "public/base.html" %}
+{% block title %}Book {{ room.name }}{% endblock %}
+{% block body %}
+<h1>{{ room.name }}</h1>
+<p>{{ stay.check_in }} to {{ stay.check_out }} · {{ nights }} nights · {{ stay.rooms }} room(s)</p>
+<p class="price">{{ total|money(site.currency) }}</p>
+{% if property_row %}<p>{{ property_row.policies }}</p>{% endif %}
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label>First name</label><input name="first_name" required></div>
+    <div><label>Last name</label><input name="last_name" required></div>
+    <div><label>Email</label><input name="email" type="email" required></div>
+    <div><label>Phone</label><input name="phone" required></div>
+  </div>
+  <label>Address</label><input name="address" required>
+  <div class="row">
+    <div><label>City</label><input name="city" required></div>
+    <div><label>State</label><input name="state" required></div>
+    <div><label>Postal code</label><input name="postal" required></div>
+    <div>
+      <label>Country</label>
+      <select name="country">{% for country in countries %}<option>{{ country }}</option>{% endfor %}</select>
+    </div>
+  </div>
+  <label>Company</label><input name="company">
+  <label>Comments</label><textarea name="comments"></textarea>
+  <h2>Payment</h2>
+  <p class="muted">The full card number and security code are checked and then discarded. This reservation keeps the brand, last four digits, expiry, and a reference.</p>
+  <div class="row">
+    <div><label>Brand</label><select name="card_brand">{% for brand in brands %}<option>{{ brand }}</option>{% endfor %}</select></div>
+    <div><label>Card number</label><input name="card_number" autocomplete="off" required></div>
+    <div><label>Expiry</label><input name="card_exp" placeholder="MM/YY" required></div>
+    <div><label>Security code</label><input name="card_cvv" autocomplete="off" required></div>
+  </div>
+  <label><input type="checkbox" name="agree" value="yes"> I agree to the hotel policy</label>
+  <p><button class="btn" type="submit">Confirm reservation</button></p>
+</form>
+{% endblock %}

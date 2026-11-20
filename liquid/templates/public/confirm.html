@@ -1,0 +1,15 @@
+{% extends "public/base.html" %}
+{% block title %}{{ reservation.confirmation_code }}{% endblock %}
+{% block body %}
+<h1>{{ reservation.confirmation_code }}</h1>
+<p class="badge">{{ reservation.status }}</p>
+<p>{{ reservation.room.name }} · {{ reservation.rooms }} room(s)</p>
+<p>{{ reservation.check_in }} to {{ reservation.check_out }} · {{ reservation.nights }} nights</p>
+<p class="price">{{ reservation.total_cents|money(site.currency) }}</p>
+<p>{{ reservation.first_name }} {{ reservation.last_name }} · {{ reservation.email }}</p>
+<p>{{ reservation.payment_brand }} ending {{ reservation.payment_last4 }} · {{ reservation.payment_reference }}</p>
+{% if property_row %}
+<p>{{ property_row.name }} · {{ property_row.phone }} · {{ property_row.email }}</p>
+<p>{{ property_row.policies }}</p>
+{% endif %}
+{% endblock %}

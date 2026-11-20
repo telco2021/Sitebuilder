@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Liquid Software</title>
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <div class="login">
+    <form class="card" method="post" action="/admin/login">
+      <h1>Sitebuilder</h1>
+      <p class="muted">Sign in to assemble a site, then generate the files that run it.</p>
+      {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <p><button class="btn" type="submit">Sign in</button></p>
+      <p><a href="/admin/forgot">Forgot password</a></p>
+    </form>
+  </div>
+</body>
+</html>

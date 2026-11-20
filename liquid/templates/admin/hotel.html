@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+{% block title %}Hotel{% endblock %}
+{% block body %}
+<h1>Hotel</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/hotel/property">
+  <h2>Property</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="name">Name</label>
+  <input id="name" name="name" value="{{ property_row.name if property_row else site.name }}">
+  <div class="row">
+    <div><label for="address1">Address</label><input id="address1" name="address1" value="{{ property_row.address1 if property_row else '' }}"></div>
+    <div><label for="address2">Address 2</label><input id="address2" name="address2" value="{{ property_row.address2 if property_row else '' }}"></div>
+  </div>
+  <div class="row">
+    <div><label for="city">City</label><input id="city" name="city" value="{{ property_row.city if property_row else '' }}"></div>
+    <div><label for="state">State</label><input id="state" name="state" value="{{ property_row.state if property_row else '' }}"></div>
+    <div><label for="postcode">Postal code</label><input id="postcode" name="postcode" value="{{ property_row.postcode if property_row else '' }}"></div>
+  </div>
+  <label for="country">Country</label>
+  <select id="country" name="country">
+    {% for country in countries %}
+    <option {% if property_row and property_row.country == country %}selected{% endif %}>{{ country }}</option>
+    {% endfor %}
+  </select>
+  <div class="row">
+    <div><label for="phone">Phone</label><input id="phone" name="phone" value="{{ property_row.phone if property_row else '' }}"></div>
+    <div><label for="fax">Fax</label><input id="fax" name="fax" value="{{ property_row.fax if property_row else '' }}"></div>
+    <div><label for="email">Desk email</label><input id="email" name="email" value="{{ property_row.email if property_row else '' }}"></div>
+  </div>
+  <label for="policies">Policies</label>
+  <textarea id="policies" name="policies">{{ property_row.policies if property_row else '' }}</textarea>
+  <p><button class="btn" type="submit">Save property</button></p>
+</form>
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/hotel/rooms">
+  <h2>Room type</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="room_id" value="0">
+  <label for="room_name">Name</label>
+  <input id="room_name" name="name" required>
+  <div class="row">
+    <div><label for="nightly_rate">Nightly rate ({{ site.currency }})</label><input id="nightly_rate" name="nightly_rate" value="129"></div>
+    <div><label for="capacity">Guests per room</label><input id="capacity" name="capacity" value="2"></div>
+    <div><label for="inventory">Rooms in inventory</label><input id="inventory" name="inventory" value="5"></div>
+  </div>
+  <label for="description">Description</label>
+  <textarea id="description" name="description"></textarea>
+  <p><button class="btn" type="submit">Add room type</button></p>
+</form>
+{% for room in rooms %}
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/hotel/rooms">
+  <h2>{{ room.name }}</h2>
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="room_id" value="{{ room.id }}">
+  <label>Name</label>
+  <input name="name" value="{{ room.name }}">
+  <div class="row">
+    <div><label>Nightly rate</label><input name="nightly_rate" value="{{ (room.nightly_rate_cents / 100)|int }}"></div>
+    <div><label>Capacity</label><input name="capacity" value="{{ room.capacity }}"></div>
+    <div><label>Inventory</label><input name="inventory" value="{{ room.inventory }}"></div>
+  </div>
+  <label>Description</label>
+  <textarea name="description">{{ room.description }}</textarea>
+  <p><button class="btn" type="submit">Save room</button></p>
+</form>
+<form method="post" action="/admin/sites/{{ site.id }}/hotel/rooms/{{ room.id }}/delete">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="btn secondary" type="submit">Delete {{ room.name }}</button>
+</form>
+{% endfor %}
+<h2>Reservations</h2>
+{% for reservation in reservations %}
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/hotel/reservations/{{ reservation.id }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <strong>{{ reservation.confirmation_code }}</strong>
+  <span class="badge">{{ reservation.status }}</span>
+  <p>{{ reservation.room.name }} · {{ reservation.rooms }} room(s) · {{ reservation.check_in }} to {{ reservation.check_out }} · {{ reservation.total_cents|money(site.currency) }}</p>
+  <p class="muted">{{ reservation.payment_brand }} ····{{ reservation.payment_last4 }} · {{ reservation.payment_reference }}</p>
+  <div class="row">
+    <div><label>First name</label><input name="first_name" value="{{ reservation.first_name }}"></div>
+    <div><label>Last name</label><input name="last_name" value="{{ reservation.last_name }}"></div>
+    <div><label>Email</label><input name="email" value="{{ reservation.email }}"></div>
+  </div>
+  <div class="row">
+    <div><label>Phone</label><input name="phone" value="{{ reservation.phone }}"></div>
+    <div><label>City</label><input name="city" value="{{ reservation.city }}"></div>
+  </div>
+  <label>Address</label>
+  <input name="address" value="{{ reservation.address }}">
+  <label>Comments</label>
+  <textarea name="comments">{{ reservation.comments }}</textarea>
+  <p>
+    <button class="btn" name="action" value="save" type="submit">Update guest</button>
+    {% if reservation.status == "confirmed" %}<button class="btn danger" name="action" value="cancel" type="submit">Cancel reservation</button>{% endif %}
+  </p>
+</form>
+{% else %}
+<p class="muted">No reservations yet.</p>
+{% endfor %}
+{% endblock %}

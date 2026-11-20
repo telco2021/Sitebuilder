@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="{{ site.language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/site.css">
+  <style>:root { {{ theme }} }</style>
+</head>
+<body>
+  <header class="top">
+    <div class="inner">
+      <a class="brand" href="/">{{ site.name }}</a>
+      {% if site.tagline %}<p class="tag">{{ site.tagline }}</p>{% endif %}
+    </div>
+    <div class="inner nav">
+      {% for item in nav %}
+      <a href="{% if item.slug == 'home' %}/{% else %}/{{ item.slug }}{% endif %}">{{ item.title }}</a>
+      {% endfor %}
+      {% if features.hotel %}<a href="/hotel">Reserve</a>{% endif %}
+      {% if features.search %}<a href="/search">Search</a>{% endif %}
+    </div>
+  </header>
+  <main class="wrap">
+    {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

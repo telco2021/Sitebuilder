@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block title %}Files{% endblock %}
+{% block body %}
+<h1>Files</h1>
+<div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<form class="card" method="post" action="/admin/sites/{{ site.id }}/files" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label for="upload">PNG, JPEG, GIF, WebP, or PDF. 5 MB maximum.</label>
+  <input id="upload" name="upload" type="file" required>
+  <p><button class="btn" type="submit">Upload</button></p>
+</form>
+<table>
+  <tr><th>File</th><th>Use in a page</th><th></th></tr>
+  {% for item in media %}
+  <tr>
+    <td>{{ item.original_name }}<div class="muted">{{ item.content_type }} · {{ item.size_bytes }} bytes</div></td>
+    <td><code>/media/{{ item.id }}</code></td>
+    <td>
+      <form method="post" action="/admin/sites/{{ site.id }}/files/{{ item.id }}/delete">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn secondary" type="submit">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">No files yet.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

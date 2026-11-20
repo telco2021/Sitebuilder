@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Reserve{% endblock %}
+{% block body %}
+<h1>Reserve a room</h1>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="row">
+    <div><label>Arrival</label><input name="check_in" type="date" min="{{ today }}" value="{{ stay.check_in if stay else '' }}" required></div>
+    <div><label>Departure</label><input name="check_out" type="date" value="{{ stay.check_out if stay else '' }}" required></div>
+    <div><label>Rooms</label><input name="rooms" value="{{ stay.rooms if stay else 1 }}"></div>
+    <div><label>Adults</label><input name="adults" value="{{ stay.adults if stay else 2 }}"></div>
+    <div><label>Children</label><input name="children" value="{{ stay.children if stay else 0 }}"></div>
+  </div>
+  <p><button class="btn" type="submit">Check availability</button></p>
+</form>
+{% for offer in offers %}
+<article class="card">
+  <h2>{{ offer.room.name }}</h2>
+  <p>{{ offer.available }} available · {{ offer.total|money }}</p>
+  {% if offer.available >= stay.rooms %}
+  <a class="btn" href="/hotel/book/{{ offer.room.name|urlencode }}">Book</a>
+  {% endif %}
+</article>
+{% endfor %}
+{% endblock %}

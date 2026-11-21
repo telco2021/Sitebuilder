@@ -14,7 +14,7 @@ FEATURES: tuple[tuple[str, str, str, str], ...] = (
     ("banners", "Banners", "Content", "Campaign links and images, managed by staff."),
     ("calendar", "Calendar", "Content", "Dated events."),
     ("services", "Services", "Content", "Services matched to a postal code."),
-    ("gallery", "Gallery", "Content", "Albums of files already uploaded to the site."),
+    ("gallery", "Gallery", "Content", "Image and video albums. A locked album keeps a password hash."),
     ("share", "Tell a friend", "Content", "Queue a short note to someone. It stays on this server."),
     ("lms", "Courses", "Learning", "Courses, enrolled students, and graded quizzes."),
     ("rv", "RV coaches", "Inventory", "Coach categories, models, favorites, and offers."),
@@ -87,4 +87,6 @@ UPLOAD_EXTENSIONS = {
     ".gif": "image/gif",
     ".webp": "image/webp",
     ".pdf": "application/pdf",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
 }

@@ -233,3 +233,72 @@ def test_coupon_offer_and_coach_drop_card_numbers(client):
     desk = client.get("/admin/sites/1/coaches")
     assert "[removed]" in desk.text
     assert PAN not in desk.text
+
+
+def test_locked_gallery_hides_files_and_plays_video_in_the_page(client):
+    _enable(client)
+    png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+    webm = b"\x1a\x45\xdf\xa3" + b"\x00" * 32
+    files = client.get("/admin/sites/1/files")
+    client.post("/admin/sites/1/files", data={"csrf": csrf(files.text)}, files={"upload": ("room.png", png, "image/png")})
+    files = client.get("/admin/sites/1/files")
+    client.post("/admin/sites/1/files", data={"csrf": csrf(files.text)}, files={"upload": ("clip.webm", webm, "video/webm")})
+    files = client.get("/admin/sites/1/files")
+    rejected = client.post(
+        "/admin/sites/1/files",
+        data={"csrf": csrf(files.text)},
+        files={"upload": ("clip.mp4", b"not-a-video", "video/mp4")},
+        follow_redirects=True,
+    )
+    assert "do not match" in rejected.text
+
+    gallery = client.get("/admin/sites/1/gallery")
+    client.post(
+        "/admin/sites/1/gallery",
+        data={"csrf": csrf(gallery.text), "action": "album", "title": "Lobby", "password": "Album!Liquid2026"},
+        follow_redirects=True,
+    )
+    saved = client.get("/admin/sites/1/gallery")
+    assert "Locked" in saved.text
+    assert "Album!Liquid2026" not in saved.text
+    client.post(
+        "/admin/sites/1/gallery",
+        data={"csrf": csrf(saved.text), "action": "item", "album_id": "1", "media_id": "1", "caption": "Front door", "description": "Daylight"},
+    )
+    saved = client.get("/admin/sites/1/gallery")
+    client.post(
+        "/admin/sites/1/gallery",
+        data={"csrf": csrf(saved.text), "action": "item", "album_id": "1", "media_id": "2", "caption": "Walkthrough", "description": "Silent clip"},
+    )
+
+    hidden = client.get("/media/1")
+    assert hidden.status_code == 404
+    locked = client.get("/s/gateway/gallery/lobby")
+    assert "locked" in locked.text.lower()
+    assert "Front door" not in locked.text
+    wrong = client.post(
+        "/s/gateway/gallery/lobby/unlock",
+        data={"csrf": csrf(locked.text), "password": "nope"},
+        follow_redirects=True,
+    )
+    assert "does not unlock" in wrong.text
+    opened = client.post(
+        "/s/gateway/gallery/lobby/unlock",
+        data={"csrf": csrf(client.get("/s/gateway/gallery/lobby").text), "password": "Album!Liquid2026"},
+        follow_redirects=True,
+    )
+    assert "Images" in opened.text
+    assert client.get("/media/1").status_code == 200
+    slide = client.get("/s/gateway/gallery/lobby?view=images&item=1&play=1")
+    assert 'http-equiv="refresh"' in slide.text
+    assert "<script" not in slide.text.lower()
+    video = client.get("/s/gateway/gallery/lobby?view=videos&item=2")
+    assert "<video" in video.text
+    assert "clsid:" not in video.text
+
+    form = client.get("/admin/sites/1/generate")
+    client.post("/admin/sites/1/generate", data={"csrf": csrf(form.text)})
+    archive = client.get("/admin/sites/1/download")
+    assert archive.status_code == 200
+    assert b"Lobby" not in archive.content
+    assert b"Album!Liquid2026" not in archive.content

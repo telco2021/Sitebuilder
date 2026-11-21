@@ -456,12 +456,15 @@ def generated_gallery(request: Request):
         return HTMLResponse("Not found", status_code=404)
     items = []
     for album in _records("albums"):
-        pictures = "".join(
-            f'<p><img src="/media/{image["file"]}" alt=""></p>'
-            for image in album.get("images", [])
-            if re.fullmatch(r"[a-f0-9]{32}\.(png|jpg|jpeg|gif|webp)", image.get("file", ""))
-        )
-        items.append({"title": album["title"], "html": Markup(pictures)})
+        blocks = []
+        for image in album.get("images", []):
+            name = image.get("file", "")
+            caption = escape(image.get("caption", ""))
+            if re.fullmatch(r"[a-f0-9]{32}\.(png|jpg|jpeg|gif|webp)", name):
+                blocks.append(f'<p><img src="/media/{name}" alt=""></p><p>{caption}</p>')
+            elif image.get("kind") == "video" and re.fullmatch(r"[a-f0-9]{32}\.(mp4|webm)", name):
+                blocks.append(f'<p><video controls src="/media/{name}"></video></p><p>{caption}</p>')
+        items.append({"title": album["title"], "html": Markup("".join(blocks))})
     return render(request, "records.html", heading="Gallery", items=items)
 
 
@@ -477,7 +480,7 @@ def site_page(slug: str, request: Request):
 
 @app.get("/media/{name}")
 def media(name: str):
-    if not re.fullmatch(r"[a-f0-9]{32}\.(png|jpg|jpeg|gif|webp|pdf)", name):
+    if not re.fullmatch(r"[a-f0-9]{32}\.(png|jpg|jpeg|gif|webp|pdf|mp4|webm)", name):
         return HTMLResponse("Not found", status_code=404)
     path = (ROOT / "media" / name).resolve()
     if not path.is_relative_to((ROOT / "media").resolve()) or not path.is_file():

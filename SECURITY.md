@@ -40,3 +40,11 @@ Left out of those modules on purpose:
 The application makes no outbound HTTP calls. Sessions are signed, forms require a per-session token, passwords are hashed, and published HTML is reduced to a small set of tags. Generated sites are new Python files plus the published content. They do not wrap the old source.
 
 Re-check this file and `tests/test_quarantine.py` before adding any code that came from the old tree.
+
+## This project file
+
+The Visual Studio 2003 project file names the public gallery, the shop, accounts, banners, the calendar, forms, and a hotel path. It also names appointments, a carrier shipping page, and a payment page. Those three were file names only. Their source was not in this upload, so they were not reconstructed.
+
+The uploaded page source that did arrive is the image and video gallery, plus the application startup that copies feature switches into the session. Feature switches stay on the site settings page. The gallery compares a password hash, pages images and videos, and advances a slide with a refresh. It does not build SQL from the request, does not keep the album password, and does not embed an ActiveX, QuickTime, or Flash player. Locked albums are left out of a generated site.
+
+The web configuration in the upload held a database login, an empty administrator password, a license value, and internal addresses. None of those values were copied. The compiled libraries in the same upload were not linked or shipped.

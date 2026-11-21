@@ -22,6 +22,7 @@ from liquid.models import (
     FormDef,
     FormSubmission,
     GalleryAlbum,
+    GalleryDesk,
     GalleryImage,
     HelpArticle,
     HotelProperty,
@@ -116,6 +117,7 @@ def delete_site(db: Session, site: Site, upload_root: Path) -> None:
     db.execute(delete(CouponCategory).where(CouponCategory.site_id == site.id))
     db.execute(delete(GalleryImage).where(GalleryImage.album_id.in_(album_ids)))
     db.execute(delete(GalleryAlbum).where(GalleryAlbum.site_id == site.id))
+    db.execute(delete(GalleryDesk).where(GalleryDesk.site_id == site.id))
     for extra in (NewsPost, Banner, CalendarEvent, ServiceOffer, SmsMessage):
         db.execute(delete(extra).where(extra.site_id == site.id))
     db.execute(delete(CancellationLog).where(CancellationLog.reservation_id.in_(reservation_ids)))

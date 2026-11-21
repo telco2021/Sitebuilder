@@ -583,6 +583,8 @@ class GalleryAlbum(Base):
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
     title: Mapped[str] = mapped_column(String(160))
     slug: Mapped[str] = mapped_column(String(60))
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cover_media_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class GalleryImage(Base):
@@ -592,3 +594,21 @@ class GalleryImage(Base):
     album_id: Mapped[int] = mapped_column(ForeignKey("gallery_albums.id", ondelete="CASCADE"), index=True)
     media_id: Mapped[int] = mapped_column(Integer)
     caption: Mapped[str] = mapped_column(String(180), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[str] = mapped_column(String(16), default="image")
+
+
+class GalleryDesk(Base):
+    """Layout for the public image and video gallery. One row per site."""
+
+    __tablename__ = "gallery_desks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), unique=True)
+    columns: Mapped[int] = mapped_column(Integer, default=3)
+    rows: Mapped[int] = mapped_column(Integer, default=3)
+    padding: Mapped[int] = mapped_column(Integer, default=4)
+    border_width: Mapped[int] = mapped_column(Integer, default=1)
+    border_color: Mapped[str] = mapped_column(String(7), default="#000000")
+    transition_seconds: Mapped[int] = mapped_column(Integer, default=4)
+    copyright_name: Mapped[str] = mapped_column(String(160), default="")

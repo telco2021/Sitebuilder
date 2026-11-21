@@ -34,6 +34,8 @@ from liquid.models import (
     Customer,
     FormDef,
     FormSubmission,
+    GalleryAlbum,
+    GalleryImage,
     HelpArticle,
     HotelProperty,
     Media,
@@ -160,17 +162,39 @@ def health():
     return JSONResponse({"status": "ok"})
 
 
+def _gallery_file_is_private(db: Session, request: Request, item: Media) -> bool:
+    """A file that exists only inside locked albums stays hidden until one of those albums is unlocked."""
+    rows = db.scalars(select(GalleryImage).where(GalleryImage.media_id == item.id)).all()
+    if not rows:
+        return False
+    opened = (request.state.session.get("gallery_open") or {}).get(str(item.site_id)) or []
+    opened_ids = {value for value in opened if isinstance(value, int)} if isinstance(opened, list) else set()
+    saw_locked = False
+    for image in rows:
+        album = db.get(GalleryAlbum, image.album_id)
+        if album is None or album.site_id != item.site_id:
+            continue
+        if not album.password_hash or album.id in opened_ids or album.cover_media_id == item.id:
+            return False
+        saw_locked = True
+    if not saw_locked:
+        return False
+    needle = f"/media/{item.id}"
+    pages = db.scalars(select(Page).where(Page.site_id == item.site_id, Page.is_published.is_(True))).all()
+    return all(needle not in (page.live_body or "") for page in pages)
+
+
 @router.get("/media/{media_id:int}")
 def media(media_id: int, request: Request, db: Session = Depends(get_db)):
     item = db.get(Media, media_id)
-    if item is None:
+    if item is None or _gallery_file_is_private(db, request, item):
         raise HTTPException(status_code=404, detail="That file does not exist.")
     root = Path(request.app.state.settings.upload_dir)
     try:
         path = media_path(root, item.site_id, item.stored_name)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="That file does not exist.") from exc
-    disposition = "inline" if item.content_type.startswith("image/") else "attachment"
+    disposition = "inline" if item.content_type.startswith(("image/", "video/")) else "attachment"
     return FileResponse(path, media_type=item.content_type, filename=item.original_name, content_disposition_type=disposition)
 
 

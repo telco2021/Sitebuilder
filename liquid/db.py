@@ -30,6 +30,24 @@ def make_engine(settings: Settings):
 
 def init_db(engine) -> None:
     Base.metadata.create_all(engine)
+    if not str(engine.url).startswith("sqlite"):
+        return
+    additions = {
+        "gallery_albums": {
+            "password_hash": "VARCHAR(255)",
+            "cover_media_id": "INTEGER",
+        },
+        "gallery_images": {
+            "kind": "VARCHAR(16) DEFAULT 'image'",
+            "description": "TEXT DEFAULT ''",
+        },
+    }
+    with engine.begin() as connection:
+        for table, columns in additions.items():
+            existing = {row[1] for row in connection.exec_driver_sql(f"PRAGMA table_info({table})")}
+            for name, ddl in columns.items():
+                if name not in existing:
+                    connection.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
 
 
 def session_factory(engine) -> sessionmaker[Session]:

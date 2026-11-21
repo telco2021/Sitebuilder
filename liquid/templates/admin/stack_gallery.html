@@ -3,22 +3,83 @@
 {% block body %}
 <h1>Gallery</h1>
 <div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
+<p class="muted">Albums can hold images and MP4 or WebM video. A locked album stores a password hash. The password is not written into a generated site.</p>
+<form class="card" method="post">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="action" value="settings">
+  <label for="columns">Columns</label>
+  <input id="columns" name="columns" type="number" min="1" max="6" value="{{ desk.columns }}" required>
+  <label for="rows">Rows</label>
+  <input id="rows" name="rows" type="number" min="1" max="8" value="{{ desk.rows }}" required>
+  <label for="padding">Padding</label>
+  <input id="padding" name="padding" type="number" min="0" max="40" value="{{ desk.padding }}" required>
+  <label for="border_width">Border width</label>
+  <input id="border_width" name="border_width" type="number" min="0" max="8" value="{{ desk.border_width }}" required>
+  <label for="border_color">Border color</label>
+  <input id="border_color" name="border_color" value="{{ desk.border_color }}" required>
+  <label for="transition_seconds">Slide seconds</label>
+  <input id="transition_seconds" name="transition_seconds" type="number" min="2" max="30" value="{{ desk.transition_seconds }}" required>
+  <label for="copyright_name">Copyright line</label>
+  <input id="copyright_name" name="copyright_name" value="{{ desk.copyright_name }}">
+  <p><button class="btn" type="submit">Save layout</button></p>
+</form>
 <form class="card" method="post">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="action" value="album">
   <label for="title">Album title</label>
   <input id="title" name="title" required>
+  <label for="cover_media_id">Cover image</label>
+  <select id="cover_media_id" name="cover_media_id">
+    <option value="">None</option>
+    {% for item in pictures %}<option value="{{ item.id }}">{{ item.original_name }}</option>{% endfor %}
+  </select>
+  <label for="password">Password, leave blank for a public album</label>
+  <input id="password" name="password" type="password" autocomplete="new-password">
   <p><button class="btn" type="submit">Create album</button></p>
 </form>
 <form class="card" method="post">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <input type="hidden" name="action" value="image">
+  <input type="hidden" name="action" value="item">
   <label for="album_id">Album</label>
   <select id="album_id" name="album_id">{% for album in albums %}<option value="{{ album.id }}">{{ album.title }}</option>{% endfor %}</select>
-  <label for="media_id">Image</label>
-  <select id="media_id" name="media_id">{% for item in media %}<option value="{{ item.id }}">{{ item.original_name }}</option>{% endfor %}</select>
+  <label for="media_id">Image or video</label>
+  <select id="media_id" name="media_id">
+    {% for item in pictures %}<option value="{{ item.id }}">Image · {{ item.original_name }}</option>{% endfor %}
+    {% for item in videos %}<option value="{{ item.id }}">Video · {{ item.original_name }}</option>{% endfor %}
+  </select>
   <label for="caption">Caption</label>
   <input id="caption" name="caption">
-  <p><button class="btn" type="submit">Add image</button></p>
+  <label for="description">Description</label>
+  <input id="description" name="description">
+  <p><button class="btn" type="submit">Add to album</button></p>
 </form>
+<table>
+  <tr><th>Album</th><th>Access</th><th></th></tr>
+  {% for album in albums %}
+  <tr>
+    <td>{{ album.title }}</td>
+    <td>{% if album.password_hash %}Locked{% else %}Public{% endif %}</td>
+    <td>
+      {% if album.password_hash %}
+      <form method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="action" value="clear">
+        <input type="hidden" name="album_id" value="{{ album.id }}">
+        <button class="btn secondary" type="submit">Remove password</button>
+      </form>
+      {% else %}
+      <form method="post">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="action" value="lock">
+        <input type="hidden" name="album_id" value="{{ album.id }}">
+        <input name="password" type="password" autocomplete="new-password" aria-label="Password for {{ album.title }}" required>
+        <button class="btn secondary" type="submit">Lock</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">No albums yet.</td></tr>
+  {% endfor %}
+</table>
 {% endblock %}

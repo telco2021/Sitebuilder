@@ -185,13 +185,15 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
     ]
     albums = []
     for album in db.scalars(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id).order_by(GalleryAlbum.title)).all():
+        if album.password_hash:
+            continue
         pictures = []
-        for image in db.scalars(select(GalleryImage).where(GalleryImage.album_id == album.id)).all():
+        for image in db.scalars(select(GalleryImage).where(GalleryImage.album_id == album.id).order_by(GalleryImage.id)).all():
             filename = id_to_file.get(image.media_id, "")
             if filename:
-                pictures.append({"file": filename, "caption": image.caption})
+                pictures.append({"file": filename, "caption": image.caption, "kind": image.kind if image.kind in {"image", "video"} else "image"})
         albums.append({"slug": album.slug, "title": album.title, "images": pictures})
-    return {
+    bundle = {
         "format": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "site": {
@@ -229,6 +231,12 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
         "coupons": coupons,
         "albums": albums,
     }
+    if media_dest is not None and media_dest.is_dir():
+        referenced = json.dumps(bundle)
+        for path in media_dest.iterdir():
+            if path.is_file() and path.name not in referenced:
+                path.unlink()
+    return bundle
 
 
 def generate_site(db: Session, site: Site, upload_root: Path, generated_root: Path) -> tuple[Path, Path]:

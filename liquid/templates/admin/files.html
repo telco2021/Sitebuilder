@@ -5,7 +5,7 @@
 <div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
 <form class="card" method="post" action="/admin/sites/{{ site.id }}/files" enctype="multipart/form-data">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label for="upload">PNG, JPEG, GIF, WebP, or PDF. 5 MB maximum.</label>
+  <label for="upload">PNG, JPEG, GIF, WebP, PDF, MP4, or WebM. 5 MB maximum.</label>
   <input id="upload" name="upload" type="file" required>
   <p><button class="btn" type="submit">Upload</button></p>
 </form>

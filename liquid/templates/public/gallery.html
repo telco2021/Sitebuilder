@@ -1,0 +1,79 @@
+{% extends "public/base.html" %}
+{% block title %}Gallery · {{ site.name }}{% endblock %}
+{% block meta %}
+{% if refresh_url %}
+<meta http-equiv="refresh" content="{{ desk.transition_seconds }};url={{ refresh_url }}">
+{% endif %}
+{% endblock %}
+{% block body %}
+<h1>Gallery</h1>
+{% if mode == "albums" %}
+<div class="grid">
+  {% for album in albums %}
+  <article class="card">
+    {% if album.cover_media_id %}
+    <p><img src="/media/{{ album.cover_media_id }}" alt="" style="border: {{ desk.border_width }}px solid {{ desk.border_color }}; padding: {{ desk.padding }}px; max-width: 100%;"></p>
+    {% endif %}
+    <h2><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}">{{ album.title }}</a></h2>
+    {% if album.password_hash %}<p class="muted">Password required</p>{% endif %}
+  </article>
+  {% else %}
+  <p>No albums yet.</p>
+  {% endfor %}
+</div>
+{% elif mode == "locked" %}
+<article class="card">
+  <h2>{{ album.title }}</h2>
+  <p>This album is locked.</p>
+  <form method="post" action="/s/{{ site.slug }}/gallery/{{ album.slug }}/unlock">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <p><button class="btn" type="submit">Unlock</button></p>
+  </form>
+  <p><a href="/s/{{ site.slug }}/gallery">All albums</a></p>
+</article>
+{% elif mode == "hub" %}
+<article class="card">
+  <h2>{{ album.title }}</h2>
+  <p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}?view=images">Images</a></p>
+  <p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}?view=videos">Videos</a></p>
+  <p><a href="/s/{{ site.slug }}/gallery">All albums</a></p>
+</article>
+{% elif mode == "grid" %}
+<p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}">{{ album.title }}</a></p>
+<div class="grid">
+  {% for item in items %}
+  <article class="card">
+    {% if item.kind == "image" %}
+    <p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}?view={{ view }}&amp;item={{ item.id }}"><img src="/media/{{ item.media_id }}" alt="" style="border: {{ desk.border_width }}px solid {{ desk.border_color }}; padding: {{ desk.padding }}px; max-width: 100%;"></a></p>
+    {% else %}
+    <p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}?view={{ view }}&amp;item={{ item.id }}">Play video</a></p>
+    {% endif %}
+    {% if item.caption %}<p>{{ item.caption }}</p>{% endif %}
+  </article>
+  {% else %}
+  <p>Nothing is in this album yet.</p>
+  {% endfor %}
+</div>
+<p>
+  {% for page in pages %}
+    {% if page.current %}<strong>{{ page.n }}</strong>{% else %}<a href="{{ page.href }}">{{ page.n }}</a>{% endif %}
+  {% endfor %}
+</p>
+{% elif mode == "viewer" %}
+<p><a href="/s/{{ site.slug }}/gallery/{{ album.slug }}?view={{ view }}">Back to {{ album.title }}</a></p>
+<article class="card">
+  {% if view == "images" %}
+  <p><img src="/media/{{ media.id }}" alt="" style="border: {{ desk.border_width }}px solid {{ desk.border_color }}; padding: {{ desk.padding }}px; max-width: 100%;"></p>
+  <p><a href="{{ previous_url }}">Previous</a> <a href="{{ next_url }}">Next</a> <a href="{{ play_url }}">Play</a> <a href="{{ stop_url }}">Stop</a></p>
+  {% else %}
+  <p><video controls src="/media/{{ media.id }}" style="max-width: 100%;"></video></p>
+  <p><a href="{{ previous_url }}">Previous</a> <a href="{{ next_url }}">Next</a></p>
+  {% endif %}
+  {% if current.caption %}<h2>{{ current.caption }}</h2>{% endif %}
+  {% if current.description %}<p>{{ current.description }}</p>{% endif %}
+</article>
+{% endif %}
+{% if desk.copyright_name %}<p class="muted">{{ desk.copyright_name }}</p>{% endif %}
+{% endblock %}

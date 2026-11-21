@@ -33,7 +33,7 @@ Production refuses to start without `LIQUID_SECRET_KEY`, and refuses the first b
 ## What Sitebuilder does
 
 1. Sign in and create a site.
-2. Turn features on: pages, menus, search, files, help, forms, customer accounts, catalog, hotel reservations, news, banners, calendar, services, gallery, courses, RV coaches, coupons, tell-a-friend, and the local message queue.
+2. Turn features on: pages, menus, search, files, help, forms, customer accounts, catalog, hotel reservations, news, banners, calendar, services, image and video gallery, courses, RV coaches, coupons, tell-a-friend, and the local message queue. A gallery album can require a password. The hash stays in Sitebuilder, and a locked album is left out of a generated site.
 3. Draft a page, publish it, or revert the draft back to the live copy. Editors can save drafts. Publishers publish and generate.
 4. For a hotel site, set the property, room inventory, and guest details. Availability counts nights that actually overlap, inside a single save.
 5. Generate. The result is `data/generated/<slug>/` and a zip download. Published news, events, services, courses, coaches, coupons, and albums are included. Quiz grading, merchant approval, and the message queue stay in Sitebuilder.

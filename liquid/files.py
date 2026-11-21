@@ -19,6 +19,14 @@ _MAGIC = {
 
 
 def sniff(suffix: str, payload: bytes) -> None:
+    if suffix == ".mp4":
+        if len(payload) < 12 or payload[4:8] != b"ftyp":
+            raise FormError("The file contents do not match its extension.")
+        return
+    if suffix == ".webm":
+        if not payload.startswith(b"\x1a\x45\xdf\xa3"):
+            raise FormError("The file contents do not match its extension.")
+        return
     expected = _MAGIC[suffix]
     if not payload.startswith(expected):
         raise FormError("The file contents do not match its extension.")
@@ -33,7 +41,7 @@ def store_upload(upload_root: Path, site_id: int, filename: str, payload: bytes,
         raise FormError("That file is larger than the upload limit.")
     suffix = Path(filename or "").suffix.lower()
     if suffix not in UPLOAD_EXTENSIONS:
-        raise FormError("Upload a PNG, JPEG, GIF, WebP, or PDF file.")
+        raise FormError("Upload a PNG, JPEG, GIF, WebP, PDF, MP4, or WebM file.")
     sniff(suffix, payload)
     stored = f"{secrets.token_hex(16)}{suffix}"
     directory = (upload_root / str(site_id)).resolve()

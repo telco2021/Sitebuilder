@@ -29,6 +29,7 @@ from liquid.models import (
     CourseQuestion,
     Enrollment,
     GalleryAlbum,
+    GalleryDesk,
     GalleryImage,
     Media,
     Merchant,
@@ -57,7 +58,7 @@ from liquid.security import (
     validate_password,
     verify_password,
 )
-from liquid.textutil import FormError, http_url, parse_email, plain, redact_secrets, sanitize_html, slugify
+from liquid.textutil import FormError, hex_color, http_url, parse_email, plain, redact_secrets, sanitize_html, slugify
 
 router = APIRouter()
 _PHONE = re.compile(r"\+?[0-9]{8,15}")
@@ -958,13 +959,74 @@ def coupons_public(slug: str, request: Request, db: Session = Depends(get_db)):
 # --- Gallery ---
 
 
+def _desk(db: Session, site: Site) -> GalleryDesk:
+    row = db.scalar(select(GalleryDesk).where(GalleryDesk.site_id == site.id))
+    if row is None:
+        row = GalleryDesk(site_id=site.id)
+        db.add(row)
+        db.commit()
+    return row
+
+
+def _open_albums(request: Request, site_id: int) -> set[int]:
+    box = (request.state.session.get("gallery_open") or {}).get(str(site_id)) or []
+    if not isinstance(box, list):
+        return set()
+    return {item for item in box if isinstance(item, int)}
+
+
+def _grant_album(request: Request, site_id: int, album_id: int) -> None:
+    current = [item for item in _open_albums(request, site_id)]
+    if album_id not in current:
+        current.append(album_id)
+    request.state.session.setdefault("gallery_open", {})[str(site_id)] = current[-20:]
+
+
+def _query_int(request: Request, name: str, default: int, low: int, high: int) -> int:
+    raw = request.query_params.get(name, "")
+    if not str(raw).isdigit():
+        return default
+    value = int(raw)
+    if value < low or value > high:
+        return default
+    return value
+
+
+def _album_items(db: Session, site: Site, album: GalleryAlbum, kind: str) -> list[tuple[GalleryImage, Media]]:
+    rows = db.scalars(
+        select(GalleryImage).where(GalleryImage.album_id == album.id, GalleryImage.kind == kind).order_by(GalleryImage.id)
+    ).all()
+    paired = []
+    for image in rows:
+        media = db.get(Media, image.media_id)
+        if media is None or media.site_id != site.id:
+            continue
+        if kind == "image" and not media.content_type.startswith("image/"):
+            continue
+        if kind == "video" and media.content_type not in {"video/mp4", "video/webm"}:
+            continue
+        paired.append((image, media))
+    return paired
+
+
 @router.get("/admin/sites/{site_id:int}/gallery")
 def gallery_admin(site_id: int, request: Request, db: Session = Depends(get_db)):
     user = _guard(request, db, "publisher", "editor")
     site = _featured(db, site_id, "gallery")
     albums = db.scalars(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id).order_by(GalleryAlbum.title)).all()
     media = db.scalars(select(Media).where(Media.site_id == site.id).order_by(Media.id.desc())).all()
-    return render(request, "admin/stack_gallery.html", site=site, sections=_sections(site, user), albums=albums, media=media)
+    pictures = [item for item in media if item.content_type.startswith("image/")]
+    videos = [item for item in media if item.content_type in {"video/mp4", "video/webm"}]
+    return render(
+        request,
+        "admin/stack_gallery.html",
+        site=site,
+        sections=_sections(site, user),
+        albums=albums,
+        pictures=pictures,
+        videos=videos,
+        desk=_desk(db, site),
+    )
 
 
 @router.post("/admin/sites/{site_id:int}/gallery")
@@ -973,31 +1035,107 @@ async def gallery_save(site_id: int, request: Request, db: Session = Depends(get
     site = _featured(db, site_id, "gallery")
     form = await posted(request)
     action = field(form, "action", 20) or "album"
-    if action == "image":
-        album = _owned(db, GalleryAlbum, integer(form, "album_id", 0, 1, 10_000_000, "Album"), site.id)
-        media = db.get(Media, integer(form, "media_id", 0, 1, 10_000_000, "File"))
-        if media is None or media.site_id != site.id or not media.content_type.startswith("image/"):
-            flash(request, "error", "Choose an image that belongs to this site.")
-            return redirect(f"/admin/sites/{site.id}/gallery")
-        db.add(GalleryImage(album_id=album.id, media_id=media.id, caption=field(form, "caption", 180)))
-    else:
-        title = field(form, "title", 160)
-        if not title:
-            flash(request, "error", "An album needs a title.")
-            return redirect(f"/admin/sites/{site.id}/gallery")
-        db.add(GalleryAlbum(site_id=site.id, title=title, slug=_slug_for(db, GalleryAlbum, site.id, title)))
+    try:
+        _gallery_apply(db, request, site, form, action)
+    except FormError as exc:
+        flash(request, "error", str(exc))
+        return redirect(f"/admin/sites/{site.id}/gallery")
+    audit(db, request, request.app.state.settings, user.email, "gallery.save", site.slug, action)
     db.commit()
     flash(request, "ok", "Saved.")
     return redirect(f"/admin/sites/{site.id}/gallery")
+
+
+def _gallery_apply(db: Session, request: Request, site: Site, form, action: str) -> None:
+    if action == "settings":
+        desk = _desk(db, site)
+        desk.columns = integer(form, "columns", 3, 1, 6, "Columns")
+        desk.rows = integer(form, "rows", 3, 1, 8, "Rows")
+        desk.padding = integer(form, "padding", 4, 0, 40, "Padding")
+        desk.border_width = integer(form, "border_width", 1, 0, 8, "Border")
+        desk.border_color = hex_color(field(form, "border_color", 7), "#000000")
+        desk.transition_seconds = integer(form, "transition_seconds", 4, 2, 30, "Transition")
+        desk.copyright_name = field(form, "copyright_name", 160)
+    elif action == "item":
+        album = _owned(db, GalleryAlbum, integer(form, "album_id", 0, 1, 10_000_000, "Album"), site.id)
+        media = db.get(Media, integer(form, "media_id", 0, 1, 10_000_000, "File"))
+        kind = "image" if media and media.content_type.startswith("image/") else "video"
+        allowed = media is not None and media.site_id == site.id and kind in {"image", "video"}
+        if kind == "video":
+            allowed = allowed and media.content_type in {"video/mp4", "video/webm"}
+        if not allowed:
+            raise FormError("Choose an image, MP4, or WebM file that belongs to this site.")
+        db.add(
+            GalleryImage(
+                album_id=album.id,
+                media_id=media.id,
+                caption=field(form, "caption", 180),
+                description=plain(form.get("description"), 500),
+                kind=kind,
+            )
+        )
+    elif action == "clear":
+        album = _owned(db, GalleryAlbum, integer(form, "album_id", 0, 1, 10_000_000, "Album"), site.id)
+        album.password_hash = None
+    elif action == "lock":
+        album = _owned(db, GalleryAlbum, integer(form, "album_id", 0, 1, 10_000_000, "Album"), site.id)
+        album.password_hash = hash_password(validate_password(field(form, "password", 128)), request.app.state.settings.env)
+    else:
+        title = field(form, "title", 160)
+        if not title:
+            raise FormError("An album needs a title.")
+        cover_id = _optional_int(form, "cover_media_id")
+        cover = db.get(Media, cover_id) if cover_id else None
+        if cover is not None and (cover.site_id != site.id or not cover.content_type.startswith("image/")):
+            cover = None
+        password = field(form, "password", 128)
+        db.add(
+            GalleryAlbum(
+                site_id=site.id,
+                title=title,
+                slug=_slug_for(db, GalleryAlbum, site.id, title),
+                cover_media_id=cover.id if cover else None,
+                password_hash=hash_password(validate_password(password), request.app.state.settings.env) if password else None,
+            )
+        )
 
 
 @router.get("/s/{slug}/gallery")
 def gallery_public(slug: str, request: Request, db: Session = Depends(get_db)):
     site = _site(db, slug)
     _feature(site, "gallery")
+    desk = _desk(db, site)
     albums = db.scalars(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id).order_by(GalleryAlbum.title)).all()
-    items = [{"title": album.title, "href": f"/s/{site.slug}/gallery/{album.slug}"} for album in albums]
-    return render(request, "public/stack_list.html", heading="Gallery", items=items, **_context(request, db, site))
+    return render(
+        request,
+        "public/gallery.html",
+        mode="albums",
+        albums=albums,
+        desk=desk,
+        album=None,
+        items=[],
+        pages=[],
+        **_context(request, db, site),
+    )
+
+
+@router.post("/s/{slug}/gallery/{album_slug}/unlock")
+async def gallery_unlock(slug: str, album_slug: str, request: Request, db: Session = Depends(get_db)):
+    site = _site(db, slug)
+    _feature(site, "gallery")
+    album = db.scalar(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id, GalleryAlbum.slug == album_slug))
+    if album is None or not album.password_hash:
+        raise HTTPException(status_code=404, detail="That album does not exist.")
+    settings = request.app.state.settings
+    if not rate_limit(f"gallery:{client_ip(request, settings)}:{album.id}", 5, 900):
+        raise HTTPException(status_code=429, detail="Too many attempts. Wait and try again.")
+    form = await posted(request)
+    password = field(form, "password", 128)
+    if not verify_password(password, album.password_hash, settings.env):
+        flash(request, "error", "That password does not unlock this album.")
+        return redirect(f"/s/{site.slug}/gallery/{album.slug}")
+    _grant_album(request, site.id, album.id)
+    return redirect(f"/s/{site.slug}/gallery/{album.slug}")
 
 
 @router.get("/s/{slug}/gallery/{album_slug}")
@@ -1007,14 +1145,62 @@ def gallery_album(slug: str, album_slug: str, request: Request, db: Session = De
     album = db.scalar(select(GalleryAlbum).where(GalleryAlbum.site_id == site.id, GalleryAlbum.slug == album_slug))
     if album is None:
         raise HTTPException(status_code=404, detail="That album does not exist.")
-    images = db.scalars(select(GalleryImage).where(GalleryImage.album_id == album.id)).all()
-    items = []
-    for image in images:
-        media = db.get(Media, image.media_id)
-        if media is None or media.site_id != site.id:
-            continue
-        items.append({"title": image.caption or media.original_name, "html": Markup(f'<img src="/media/{media.id}" alt="">')})
-    return render(request, "public/stack_list.html", heading=album.title, items=items, **_context(request, db, site))
+    desk = _desk(db, site)
+    base = f"/s/{site.slug}/gallery/{album.slug}"
+    if album.password_hash and album.id not in _open_albums(request, site.id):
+        return render(request, "public/gallery.html", mode="locked", album=album, desk=desk, albums=[], items=[], pages=[], **_context(request, db, site))
+    view = request.query_params.get("view", "")
+    if view not in {"images", "videos"}:
+        return render(request, "public/gallery.html", mode="hub", album=album, desk=desk, albums=[], items=[], pages=[], **_context(request, db, site))
+    kind = "image" if view == "images" else "video"
+    paired = _album_items(db, site, album, kind)
+    item_id = _query_int(request, "item", 0, 0, 10_000_000)
+    if item_id:
+        chosen = next(((image, media) for image, media in paired if image.id == item_id), None)
+        if chosen is None:
+            raise HTTPException(status_code=404, detail="That file is not in this album.")
+        index = next(position for position, (image, _) in enumerate(paired) if image.id == item_id)
+        previous_id = paired[index - 1][0].id if index else paired[-1][0].id
+        next_id = paired[(index + 1) % len(paired)][0].id
+        play = request.query_params.get("play") == "1" and kind == "image"
+        refresh_url = f"{base}?view={view}&item={next_id}&play=1" if play else ""
+        return render(
+            request,
+            "public/gallery.html",
+            mode="viewer",
+            album=album,
+            desk=desk,
+            view=view,
+            current=chosen[0],
+            media=chosen[1],
+            previous_url=f"{base}?view={view}&item={previous_id}",
+            next_url=f"{base}?view={view}&item={next_id}",
+            play_url=f"{base}?view={view}&item={item_id}&play=1",
+            stop_url=f"{base}?view={view}&item={item_id}",
+            refresh_url=refresh_url,
+            albums=[],
+            items=[],
+            pages=[],
+            **_context(request, db, site),
+        )
+    page_size = max(desk.rows, 1) * max(desk.columns, 1)
+    page = _query_int(request, "page", 1, 1, 500)
+    start = (page - 1) * page_size
+    visible = paired[start : start + page_size]
+    page_count = max(1, (len(paired) + page_size - 1) // page_size)
+    pages = [{"n": number, "href": f"{base}?view={view}&page={number}", "current": number == page} for number in range(1, page_count + 1)]
+    return render(
+        request,
+        "public/gallery.html",
+        mode="grid",
+        album=album,
+        desk=desk,
+        view=view,
+        items=[{"id": image.id, "caption": image.caption, "media_id": media.id, "kind": kind} for image, media in visible],
+        pages=pages,
+        albums=[],
+        **_context(request, db, site),
+    )
 
 
 # --- Tell a friend ---

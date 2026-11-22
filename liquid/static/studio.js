@@ -84,6 +84,7 @@
       var card = document.createElement("article");
       card.className = "studio-block" + (index === selected ? " selected" : "");
       var preview = document.createElement("div");
+      preview.className = "studio-preview";
       preview.appendChild(previewBlock(block));
       card.appendChild(preview);
       var tools = document.createElement("div");
@@ -194,8 +195,9 @@
 
   function drawInspector() {
     inspector.replaceChildren();
+    var names = { heading: "Heading", text: "Text", image: "Image", button: "Button", quote: "Quote", list: "List", columns: "Columns", divider: "Divider", html: "HTML" };
     var title = document.createElement("h2");
-    title.textContent = "Block";
+    title.textContent = selected >= 0 && blocks[selected] ? names[blocks[selected].type] || "Block" : "Block";
     inspector.appendChild(title);
     if (selected < 0 || !blocks[selected]) {
       var note = document.createElement("p");

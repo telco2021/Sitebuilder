@@ -170,7 +170,7 @@ class SecurityMiddleware:
                 packed = MutableHeaders(raw=list(message.get("headers", [])))
                 cookie = _session_cookie(scope["state"]["session"], self.settings)
                 packed.append("set-cookie", cookie)
-                _security_headers(packed)
+                _security_headers(packed, scope.get("path", ""))
                 message["headers"] = packed.raw
             await send(message)
 
@@ -201,14 +201,18 @@ def _session_cookie(session: dict, settings: Settings) -> str:
     return response.headers["set-cookie"]
 
 
-def _security_headers(headers: MutableHeaders) -> None:
+_STUDIO_PATH = re.compile(r"^/admin/sites/[0-9]+/pages(?:/new|/[0-9]+)?$")
+
+
+def _security_headers(headers: MutableHeaders, path: str = "") -> None:
     headers["X-Content-Type-Options"] = "nosniff"
     headers["X-Frame-Options"] = "DENY"
     headers["Referrer-Policy"] = "no-referrer"
     headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+    script = "script-src 'self'" if _STUDIO_PATH.fullmatch(path or "") else "script-src 'none'"
     headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-        "script-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+        f"{script}; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
     )
     headers["Cross-Origin-Opener-Policy"] = "same-origin"
     headers["X-Permitted-Cross-Domain-Policies"] = "none"

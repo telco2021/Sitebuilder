@@ -51,8 +51,22 @@ th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line
 .login .card { width: min(440px, 100%); }
 .check { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
 .check input { width: auto; }
+[hidden] { display: none !important; }
+.studio-tabs { display: flex; gap: 8px; margin: 8px 0 12px; }
+.studio-tabs button[aria-pressed="true"] { background: var(--copper); color: white; border-color: var(--copper); }
+.studio { display: grid; grid-template-columns: 168px minmax(0, 1fr) 240px; gap: 12px; align-items: start; }
+.studio-palette, .studio-inspector { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+.studio-palette button, .studio-tools button { width: 100%; margin-top: 6px; }
+.studio-stage { background: white; border: 1px solid var(--line); border-radius: 16px; min-height: 460px; padding: 16px; }
+.studio-block { border: 1px solid transparent; border-radius: 10px; padding: 8px; margin-bottom: 8px; }
+.studio-block.selected { border-color: var(--copper); background: #fff7f1; }
+.studio-tools { display: flex; gap: 6px; }
+.studio-tools .btn { padding: 4px 8px; }
+.studio-link { display: inline-block; background: var(--copper); color: white; border-radius: 999px; padding: 6px 12px; }
+.studio-stage img { max-width: 100%; height: auto; }
 @media (max-width: 800px) {
   .shell { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr; }
   .main { padding: 20px; }
+  .studio { grid-template-columns: 1fr; }
 }

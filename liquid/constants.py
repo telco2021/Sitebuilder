@@ -1,7 +1,7 @@
 """Feature catalog and shared limits for Sitebuilder."""
 
 FEATURES: tuple[tuple[str, str, str, str], ...] = (
-    ("cms", "Pages", "Content", "Draft, publish, and revert pages."),
+    ("cms", "Pages", "Content", "Design a page or edit its HTML, then draft, publish, and revert."),
     ("menus", "Menus", "Content", "Navigation built from the page tree."),
     ("search", "Search", "Content", "Search published pages."),
     ("files", "Files", "Content", "Upload images and documents into pages."),

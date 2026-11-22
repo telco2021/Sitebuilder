@@ -97,10 +97,12 @@ class Page(Base):
     draft_body: Mapped[str] = mapped_column(Text, default="")
     draft_keywords: Mapped[str] = mapped_column(String(300), default="")
     draft_description: Mapped[str] = mapped_column(String(300), default="")
+    draft_blocks: Mapped[str] = mapped_column(Text, default="[]")
     live_title: Mapped[str] = mapped_column(String(160), default="")
     live_body: Mapped[str] = mapped_column(Text, default="")
     live_keywords: Mapped[str] = mapped_column(String(300), default="")
     live_description: Mapped[str] = mapped_column(String(300), default="")
+    live_blocks: Mapped[str] = mapped_column(Text, default="[]")
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -114,6 +116,7 @@ class Page(Base):
             or self.draft_body != self.live_body
             or self.draft_keywords != self.live_keywords
             or self.draft_description != self.live_description
+            or (self.draft_blocks or "[]") != (self.live_blocks or "[]")
         )
 
 

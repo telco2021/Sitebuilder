@@ -106,7 +106,7 @@ GUIDES: tuple[Guide, ...] = (
             "Choose New page.",
             "Type a title and an address, such as about. The address becomes /about on the public site.",
             "Set Menu order and Parent when this page belongs under another page. Tick Show in the menu to list it.",
-            "Write the body. You can use simple headings, lists, links, and images. Scripts are removed when you save.",
+            "Open Design to add headings, text, images, buttons, lists, quotes, columns, and dividers. Open HTML to edit the page as HTML. Scripts are removed when you save.",
             "Add keywords and a short description for search.",
             "Choose Save draft to keep working. A publisher chooses Publish to copy the draft onto the live site.",
             "Revert draft copies the live page back over the draft. Delete page removes the page.",

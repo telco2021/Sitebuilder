@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -55,6 +56,7 @@ from liquid.security import (
     verify_password,
 )
 from liquid.sites import apply_profile, apply_theme, clean_features, delete_site, unique_slug
+from liquid.studio import editor_blocks, parse_blocks, render_blocks
 from liquid.textutil import FormError, parse_email, redact_secrets, sanitize_html, slugify
 
 router = APIRouter()
@@ -308,7 +310,7 @@ def page_new(site_id: int, request: Request, db: Session = Depends(get_db)):
     user = _guard(request, db, "publisher", "editor")
     site = _featured(db, site_id, "cms")
     parents = db.scalars(select(Page).where(Page.site_id == site.id).order_by(Page.nav_order)).all()
-    return render(request, "admin/page_form.html", site=site, sections=_sections(site, user), page=None, parents=parents)
+    return render(request, "admin/page_form.html", site=site, sections=_sections(site, user), page=None, parents=parents, **_studio_view(db, site, None))
 
 
 @router.get("/admin/sites/{site_id:int}/pages/{page_id:int}")
@@ -317,7 +319,7 @@ def page_edit(site_id: int, page_id: int, request: Request, db: Session = Depend
     site = _featured(db, site_id, "cms")
     page = _page(db, site, page_id)
     parents = db.scalars(select(Page).where(Page.site_id == site.id, Page.id != page.id).order_by(Page.nav_order)).all()
-    return render(request, "admin/page_form.html", site=site, sections=_sections(site, user), page=page, parents=parents)
+    return render(request, "admin/page_form.html", site=site, sections=_sections(site, user), page=page, parents=parents, **_studio_view(db, site, page))
 
 
 @router.post("/admin/sites/{site_id:int}/pages")
@@ -347,6 +349,7 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
             return redirect(f"/admin/sites/{site.id}/pages/{page.id}" if page else f"/admin/sites/{site.id}/pages")
         page.draft_title = page.live_title
         page.draft_body = page.live_body
+        page.draft_blocks = page.live_blocks or "[]"
         page.draft_keywords = page.live_keywords
         page.draft_description = page.live_description
         page.updated_by_id = user.id
@@ -377,7 +380,18 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
     page.nav_order = integer(form, "nav_order", 0, 0, 999, "Menu order")
     page.show_in_nav = form.get("show_in_nav") == "yes"
     page.draft_title = title
-    page.draft_body = sanitize_html(block(form, "body", 100000))
+    try:
+        if field(form, "studio_mode", 10) == "design":
+            designed = parse_blocks(form.get("blocks"), _image_ids(db, site))
+            page.draft_blocks = json.dumps(designed)
+            page.draft_body = render_blocks(designed)
+        else:
+            page.draft_body = sanitize_html(block(form, "body", 100000))
+            page.draft_blocks = "[]"
+    except FormError as exc:
+        flash(request, "error", str(exc))
+        target = f"/admin/sites/{site.id}/pages/{page.id}" if page_id else f"/admin/sites/{site.id}/pages/new"
+        return redirect(target)
     page.draft_keywords = field(form, "keywords", 300)
     page.draft_description = field(form, "description", 300)
     page.updated_by_id = user.id
@@ -859,9 +873,29 @@ def _page(db: Session, site: Site, page_id: int) -> Page:
     return page
 
 
+def _image_ids(db: Session, site: Site) -> set[int]:
+    rows = db.scalars(select(Media).where(Media.site_id == site.id, Media.content_type.like("image/%"))).all()
+    return {row.id for row in rows}
+
+
+def _studio_view(db: Session, site: Site, page: Page | None) -> dict:
+    blocks = editor_blocks(page.draft_blocks if page else "[]")
+    images = [
+        {"id": row.id, "name": row.original_name}
+        for row in db.scalars(select(Media).where(Media.site_id == site.id, Media.content_type.like("image/%")).order_by(Media.id)).all()
+    ]
+    mode = "design" if blocks else "html"
+    return {
+        "studio_mode": mode,
+        "blocks_json": json.dumps(blocks),
+        "studio_initial": {"mode": mode, "blocks": blocks, "images": images},
+    }
+
+
 def _publish(page: Page) -> None:
     page.live_title = page.draft_title
     page.live_body = page.draft_body
+    page.live_blocks = page.draft_blocks or "[]"
     page.live_keywords = page.draft_keywords
     page.live_description = page.draft_description
     page.is_published = True

@@ -39,6 +39,8 @@ Left out of those modules on purpose:
 
 The application makes no outbound HTTP calls. Sessions are signed, forms require a per-session token, passwords are hashed, and published HTML is reduced to a small set of tags. Generated sites are new Python files plus the published content. They do not wrap the old source.
 
+Page studio is a first-party script served only on the page editor. Every other page, including the public site, keeps `script-src 'none'`. The script builds the design on the screen. The server checks every block again and stores the same safe HTML the rest of the site already publishes. The old visual editor, its Flash plugin, and its file browser were not brought over.
+
 Re-check this file and `tests/test_quarantine.py` before adding any code that came from the old tree.
 
 ## This project file

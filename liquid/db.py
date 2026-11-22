@@ -41,6 +41,10 @@ def init_db(engine) -> None:
             "kind": "VARCHAR(16) DEFAULT 'image'",
             "description": "TEXT DEFAULT ''",
         },
+        "pages": {
+            "draft_blocks": "TEXT DEFAULT '[]'",
+            "live_blocks": "TEXT DEFAULT '[]'",
+        },
     }
     with engine.begin() as connection:
         for table, columns in additions.items():

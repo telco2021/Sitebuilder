@@ -71,10 +71,11 @@ def apply_profile(site: Site, form) -> None:
     currency = one_line(form.get("currency"), 3).upper()
     if len(currency) == 3 and currency.isalpha():
         site.currency = currency
+    raw_shipping = form.get("shipping_cents", site.shipping_cents)
     try:
-        shipping = int(form.get("shipping_cents", site.shipping_cents))
+        shipping = int(raw_shipping)
     except (TypeError, ValueError):
-        shipping = site.shipping_cents
+        shipping = 0
     site.shipping_cents = min(max(shipping, 0), 1_000_000)
 
 

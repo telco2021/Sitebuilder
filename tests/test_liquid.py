@@ -255,3 +255,30 @@ def test_generate_writes_a_runnable_site_without_legacy_files(client):
     )
     assert done.status_code == 200
     assert PAN not in (folder / "site.db").read_bytes().decode("latin1", "ignore")
+
+
+def test_new_site_form_creates_a_site_without_a_shipping_field(client):
+    assert login(client).headers["location"] == "/admin"
+    form = client.get("/admin/sites/new")
+    assert form.status_code == 200
+    created = client.post(
+        "/admin/sites/new",
+        data={
+            "csrf": csrf(form.text),
+            "name": "Harbor Inn",
+            "company_name": "Harbor",
+            "domain": "harbor.example",
+            "tagline": "Stay",
+            "language": "en",
+            "currency": "USD",
+            "feature_cms": "yes",
+            "feature_menus": "yes",
+            "feature_search": "yes",
+        },
+        follow_redirects=False,
+    )
+    assert created.status_code == 303
+    assert created.headers["location"].startswith("/admin/sites/")
+    page = client.get(created.headers["location"])
+    assert page.status_code == 200
+    assert "Harbor Inn" in page.text

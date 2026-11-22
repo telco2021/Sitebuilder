@@ -89,7 +89,7 @@ class Page(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
-    slug: Mapped[str] = mapped_column(String(60))
+    slug: Mapped[str] = mapped_column(String(80))
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("pages.id"), nullable=True)
     nav_order: Mapped[int] = mapped_column(Integer, default=0)
     show_in_nav: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -118,6 +118,18 @@ class Page(Base):
             or self.draft_description != self.live_description
             or (self.draft_blocks or "[]") != (self.live_blocks or "[]")
         )
+
+
+class PageAlias(Base):
+    """A published address that now points at another address. Search engines keep the old link."""
+
+    __tablename__ = "page_aliases"
+    __table_args__ = (UniqueConstraint("site_id", "slug"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
+    page_id: Mapped[int] = mapped_column(ForeignKey("pages.id", ondelete="CASCADE"), index=True)
+    slug: Mapped[str] = mapped_column(String(80))
 
 
 class Media(Base):

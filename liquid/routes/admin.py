@@ -15,7 +15,7 @@ from starlette.responses import FileResponse, JSONResponse
 
 from liquid.access import LoginRequired, block, field, integer, posted, require_role, require_user, site_or_404
 from liquid.audit import audit
-from liquid.constants import COUNTRIES, FEATURES, RESERVED_PAGE_SLUGS
+from liquid.constants import COUNTRIES, FEATURES
 from liquid.db import get_db
 from liquid.files import media_path, store_upload
 from liquid.generator import generate_site
@@ -56,7 +56,9 @@ from liquid.security import (
     verify_password,
 )
 from liquid.sites import apply_profile, apply_theme, clean_features, delete_site, unique_slug
-from liquid.canvas import document_for_editor, parse_canvas, render_canvas
+from liquid.canvas import parse_canvas, render_canvas
+from liquid.design import design_for_editor, parse_design, render_design
+from liquid.seo import assign_keyword_slug
 from liquid.studio import parse_blocks, render_blocks
 from liquid.textutil import FormError, parse_email, redact_secrets, sanitize_html, slugify
 
@@ -249,7 +251,11 @@ async def new_site(request: Request, db: Session = Depends(get_db)):
         flash(request, "error", "A site needs a name.")
         return redirect("/admin/sites/new")
     site = Site(name=name, slug=unique_slug(db, name), features=_feature_flags(form) if user.role == "owner" else clean_features({"cms": True, "menus": True, "search": True}))
-    apply_profile(site, form)
+    try:
+        apply_profile(site, form)
+    except FormError as exc:
+        flash(request, "error", str(exc))
+        return redirect("/admin/sites/new")
     site.name = name
     db.add(site)
     audit(db, request, request.app.state.settings, user.email, "site.create", site.slug, "")
@@ -270,7 +276,11 @@ async def settings_save(site_id: int, request: Request, db: Session = Depends(ge
     user = _guard(request, db, "publisher")
     site = site_or_404(db, site_id)
     form = await posted(request)
-    apply_profile(site, form)
+    try:
+        apply_profile(site, form)
+    except FormError as exc:
+        flash(request, "error", str(exc))
+        return redirect(f"/admin/sites/{site.id}/settings")
     apply_theme(site, form)
     if user.role == "owner":
         site.features = _feature_flags(form)
@@ -362,13 +372,8 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
         title = field(form, "title", 160)
         if not title:
             raise FormError("A page needs a title.")
-        slug = slugify(field(form, "slug", 60) or title)
-        if slug in RESERVED_PAGE_SLUGS:
-            raise FormError("That address is reserved.")
-        taken = db.scalar(select(Page).where(Page.site_id == site.id, Page.slug == slug))
-        if taken is not None and (page is None or taken.id != page.id):
-            raise FormError("Another page already uses that address.")
         parent_id = _optional_parent(db, site, form.get("parent_id"), page.id if page else None)
+        slug = assign_keyword_slug(db, site.id, page, field(form, "slug", 120), title)
     except FormError as exc:
         flash(request, "error", str(exc))
         target = f"/admin/sites/{site.id}/pages/{page.id}" if page else f"/admin/sites/{site.id}/pages/new"
@@ -376,14 +381,25 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
     if page is None:
         page = Page(site_id=site.id, slug=slug)
         db.add(page)
-    page.slug = slug
     page.parent_id = parent_id
     page.nav_order = integer(form, "nav_order", 0, 0, 999, "Menu order")
     page.show_in_nav = form.get("show_in_nav") == "yes"
     page.draft_title = title
     try:
         mode = field(form, "studio_mode", 12)
-        if mode == "canvas":
+        if mode == "grapes":
+            raw_html = form.get("design_html")
+            raw_css = form.get("design_css")
+            if (isinstance(raw_html, str) and len(raw_html) > 150_000) or (isinstance(raw_css, str) and len(raw_css) > 80_000):
+                raise FormError("This page is too large.")
+            document = parse_design(
+                raw_html if isinstance(raw_html, str) else "",
+                raw_css if isinstance(raw_css, str) else "",
+                _image_ids(db, site),
+            )
+            page.draft_blocks = json.dumps(document)
+            page.draft_body = render_design(document)
+        elif mode == "canvas":
             document = parse_canvas(form.get("blocks"), _image_ids(db, site))
             page.draft_blocks = json.dumps(document)
             page.draft_body = render_canvas(document, site.slug)
@@ -445,7 +461,8 @@ async def media_upload(site_id: int, request: Request, db: Session = Depends(get
     db.flush()
     audit(db, request, request.app.state.settings, user.email, "file.upload", f"{site.slug}/{item.id}", content_type)
     db.commit()
-    return JSONResponse({"id": item.id, "name": item.original_name, "url": f"/media/{item.id}"})
+    url = f"/media/{item.id}"
+    return JSONResponse({"id": item.id, "name": item.original_name, "url": url, "data": [{"src": url, "name": item.original_name}]})
 
 
 @router.get("/admin/sites/{site_id:int}/files")
@@ -924,12 +941,13 @@ def _studio_view(db: Session, site: Site, page: Page | None) -> dict:
         {"id": row.id, "name": row.original_name}
         for row in db.scalars(select(Media).where(Media.site_id == site.id, Media.content_type.like("image/%")).order_by(Media.id)).all()
     ]
-    document = document_for_editor(
+    design = design_for_editor(
         page.draft_blocks if page else "",
         page.draft_body if page else "",
+        site.slug,
         {image["id"] for image in images},
     )
-    return {"canvas": document, "images": images}
+    return {"design": design, "images": images}
 
 
 def _publish(page: Page) -> None:

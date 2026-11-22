@@ -74,10 +74,10 @@ def one_line(value: object, limit: int) -> str:
     return plain(value, limit).replace("\n", " ").strip()
 
 
-def slugify(value: str, fallback: str = "item") -> str:
+def slugify(value: str, fallback: str = "item", limit: int = 60) -> str:
     normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     slug = _SLUG.sub("-", normalized.lower()).strip("-")
-    slug = slug[:60].strip("-")
+    slug = slug[:limit].strip("-")
     return slug or fallback
 
 

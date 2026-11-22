@@ -93,6 +93,9 @@ th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line
 .search-title { color: var(--copper); font-size: 18px; }
 .search-url, .search-desc { font-size: 13px; margin-top: 4px; }
 .search-url { color: var(--ok); }
+.seo-url { color: var(--ok); font-size: 14px; }
+.seo-count { font-size: 12px; color: var(--muted); margin-top: 4px; }
+#gjs { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; min-height: 680px; }
 .editor-inspector h2 { font-size: 22px; margin: 8px 0; }
 .studio-stage hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
 .studio-stage table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 0; }

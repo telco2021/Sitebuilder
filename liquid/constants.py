@@ -1,7 +1,7 @@
 """Feature catalog and shared limits for Sitebuilder."""
 
 FEATURES: tuple[tuple[str, str, str, str], ...] = (
-    ("cms", "Pages", "Content", "Drag parts onto a page, set the search description, then draft, publish, and revert."),
+    ("cms", "Pages", "Content", "Design a page, set its keyword address and search description, then draft, publish, and revert."),
     ("menus", "Menus", "Content", "Navigation built from the page tree."),
     ("search", "Search", "Content", "Search published pages."),
     ("files", "Files", "Content", "Upload images and documents into pages."),
@@ -49,6 +49,8 @@ RESERVED_PAGE_SLUGS = frozenset(
         "coaches",
         "coupons",
         "messages",
+        "sitemap",
+        "robots",
     }
 )
 

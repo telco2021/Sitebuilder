@@ -1,76 +1,58 @@
 {% extends "admin/base.html" %}
 {% block title %}Page editor{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/grapesjs/grapes.min.css">{% endblock %}
 {% block body %}
 <h1>{% if page %}{{ page.draft_title }}{% else %}New page{% endif %}</h1>
-<p class="muted">Drag a part onto the page, or click it. The page on the right edits the part you select. Search is how this page appears on Google.</p>
+<p class="muted">Design the page below. The search card is the title, the keyword address, and the description that Google, Reddit, and directory listings read.</p>
 <div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
 <form id="page-form" method="post" action="{% if page %}/admin/sites/{{ site.id }}/pages/{{ page.id }}{% else %}/admin/sites/{{ site.id }}/pages{% endif %}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <input type="hidden" name="studio_mode" value="canvas">
-  <textarea name="blocks" id="blocks" hidden>{{ canvas|tojson }}</textarea>
+  <input type="hidden" name="studio_mode" value="grapes">
+  <textarea name="design_html" id="design-html" hidden>{{ design.html }}</textarea>
+  <textarea name="design_css" id="design-css" hidden>{{ design.css }}</textarea>
   <div class="card">
     <label for="title">Title</label>
-    <input id="title" name="title" value="{{ page.draft_title if page else '' }}" required>
-    <div class="row">
-      <div><label for="slug">Address</label><input id="slug" name="slug" value="{{ page.slug if page else '' }}" placeholder="about"></div>
-      <div><label for="nav_order">Menu order</label><input id="nav_order" name="nav_order" value="{{ page.nav_order if page else 0 }}"></div>
+    <input id="title" name="title" maxlength="160" value="{{ page.draft_title if page else '' }}" required>
+    <p id="title-count" class="seo-count"></p>
+    {% if page and page.slug == "home" %}
+    <label for="slug">Keyword address</label>
+    <input id="slug" name="slug" value="home" readonly>
+    <p class="muted">The front page is the site root. Its address stays home. Add a new page for a keyword address such as software-development.</p>
+    {% else %}
+    <label for="slug">Keyword address</label>
+    <input id="slug" name="slug" maxlength="80" value="{{ page.slug if page else '' }}" placeholder="software-development">
+    <p><button class="btn secondary" id="use-keywords" type="button">Use keywords in the address</button></p>
+    <p class="muted">This becomes the path search engines index. Use the words you want to rank for, separated by hyphens. After you publish, changing the address keeps the old one working and sends visitors to the new one.</p>
+    {% endif %}
+    <p id="public-url" class="seo-url"></p>
+    <label for="description">Description</label>
+    <input id="description" name="description" maxlength="300" value="{{ page.draft_description if page else '' }}">
+    <p id="description-count" class="seo-count"></p>
+    <label for="keywords">Keywords</label>
+    <input id="keywords" name="keywords" maxlength="300" value="{{ page.draft_keywords if page else '' }}" placeholder="software development, custom software">
+    <p class="muted">The description is the line under the title in a search result. Keep it near 160 characters.</p>
+    <div class="search-preview">
+      <div id="search-title" class="search-title"></div>
+      <div id="search-url" class="search-url"></div>
+      <div id="search-desc" class="search-desc"></div>
     </div>
-    <label for="parent_id">Parent</label>
-    <select id="parent_id" name="parent_id">
-      <option value="0">None</option>
-      {% for parent in parents %}
-      <option value="{{ parent.id }}" {% if page and page.parent_id == parent.id %}selected{% endif %}>{{ parent.draft_title }}</option>
-      {% endfor %}
-    </select>
+    <div class="row">
+      <div><label for="nav_order">Menu order</label><input id="nav_order" name="nav_order" value="{{ page.nav_order if page else 0 }}"></div>
+      <div>
+        <label for="parent_id">Parent</label>
+        <select id="parent_id" name="parent_id">
+          <option value="0">None</option>
+          {% for parent in parents %}
+          <option value="{{ parent.id }}" {% if page and page.parent_id == parent.id %}selected{% endif %}>{{ parent.draft_title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
     <label class="check"><input type="checkbox" name="show_in_nav" value="yes" {% if not page or page.show_in_nav %}checked{% endif %}> Show in the menu</label>
   </div>
-  <div id="editor">
-    <div class="editor-bar">
-      <button class="btn secondary" id="editor-undo" type="button" disabled>Undo</button>
-      <button class="btn secondary" id="editor-redo" type="button" disabled>Redo</button>
-      <button class="btn secondary" id="editor-desktop" type="button" aria-pressed="true">Desktop</button>
-      <button class="btn secondary" id="editor-phone" type="button" aria-pressed="false">Phone</button>
-    </div>
-    <div class="editor-panes">
-      <aside class="editor-palette">
-        <h2>Parts</h2>
-        <button class="btn secondary" type="button" draggable="true" data-add="heading">Heading</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="text">Text</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="image">Image</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="button">Button</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="list">List</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="columns">Columns</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="spacer">Spacer</button>
-        <button class="btn secondary" type="button" draggable="true" data-add="form">Form</button>
-      </aside>
-      <div id="editor-frame" class="editor-frame">
-        <div class="editor-sitehead">{{ site.name }} <span>Header, shared by every page</span></div>
-        <div id="editor-canvas" class="editor-canvas" style="background: {{ site.color_paper }}; color: {{ site.color_text }}"></div>
-        <div class="editor-sitefoot">Footer, shared by every page</div>
-      </div>
-      <aside class="editor-inspector">
-        <div class="editor-tabs">
-          <button class="btn secondary" type="button" data-tab="content" aria-pressed="true">Content</button>
-          <button class="btn secondary" type="button" data-tab="style" aria-pressed="false">Style</button>
-          <button class="btn secondary" type="button" data-tab="search" aria-pressed="false">Search</button>
-        </div>
-        <div id="inspector-fields"></div>
-        <div id="inspector-search" hidden>
-          <h2>Search</h2>
-          <label for="keywords">Keywords</label>
-          <input id="keywords" name="keywords" value="{{ page.draft_keywords if page else '' }}">
-          <label for="description">Description</label>
-          <input id="description" name="description" value="{{ page.draft_description if page else '' }}">
-          <p class="muted">This is the line under the title in a search result.</p>
-          <div class="search-preview">
-            <div id="search-title" class="search-title"></div>
-            <div id="search-url" class="search-url"></div>
-            <div id="search-desc" class="search-desc"></div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  </div>
+  <p class="muted">The site name, menu, and footer stay on every page. Design the part in the middle.</p>
+  <div id="gjs"></div>
+  <p id="upload-status" class="muted"></p>
   <p>
     <button class="btn secondary" name="action" value="save" type="submit">Save draft</button>
     {% if user.role != "editor" %}
@@ -85,6 +67,7 @@
   <button class="btn danger" name="action" value="delete" type="submit">Delete page</button>
 </form>
 {% endif %}
-<script type="application/json" id="editor-initial">{{ {"document": canvas, "images": images, "uploadUrl": "/admin/sites/%s/media"|format(site.id), "publicPath": "/s/%s"|format(site.slug)}|tojson }}</script>
-<script src="/static/canvas.js"></script>
+<script type="application/json" id="editor-initial">{{ {"uploadUrl": "/admin/sites/%s/media"|format(site.id), "domain": site.domain, "siteSlug": site.slug, "colors": {"accent": site.color_accent, "header": site.color_header, "text": site.color_text, "paper": site.color_paper}}|tojson }}</script>
+<script src="/static/vendor/grapesjs/grapes.min.js"></script>
+<script src="/static/design.js"></script>
 {% endblock %}

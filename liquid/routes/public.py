@@ -11,7 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, RedirectResponse, Response
 
 from liquid.db import get_db
 
@@ -19,6 +19,7 @@ from liquid.access import field, posted
 from liquid.audit import audit
 from liquid.constants import CARD_BRANDS, COUNTRIES, FEATURE_KEYS
 from liquid.content import embed_news
+from liquid.design import published_body
 from liquid.files import media_path
 from liquid.hotel import (
     cancel_reservation,
@@ -42,6 +43,7 @@ from liquid.models import (
     Order,
     OrderLine,
     Page,
+    PageAlias,
     Product,
     Reservation,
     RoomType,
@@ -50,7 +52,8 @@ from liquid.models import (
 from liquid.payments import accept_payment
 from liquid.render import flash, redirect, render, theme_style
 from liquid.security import client_ip, hash_password, rate_limit, validate_password, verify_password
-from liquid.textutil import FormError, one_line, parse_email, plain, redact_secrets, sanitize_html, slugify, strip_tags
+from liquid.seo import absolute_url, canonical_url, join_path, keyword_slug, listing_paths, robots_txt, sitemap_xml
+from liquid.textutil import FormError, one_line, parse_email, plain, redact_secrets, sanitize_html, strip_tags
 
 router = APIRouter()
 
@@ -210,13 +213,7 @@ def site_home(slug: str, request: Request, db: Session = Depends(get_db)):
         )
     if page is None:
         raise HTTPException(status_code=404, detail="This site has no published pages yet.")
-    return render(
-        request,
-        "public/page.html",
-        page=page,
-        body=Markup(embed_news(db, site, sanitize_html(page.live_body))),
-        **_context(request, db, site),
-    )
+    return _show_page(request, db, site, page)
 
 
 @router.get("/s/{slug}/search")
@@ -656,20 +653,65 @@ async def account_submit(slug: str, request: Request, db: Session = Depends(get_
     return redirect(f"/s/{site.slug}/account")
 
 
+@router.get("/robots.txt")
+def builder_robots():
+    return Response(robots_txt("", index=False), media_type="text/plain")
+
+
+@router.get("/s/{slug}/robots.txt")
+def site_robots(slug: str, request: Request, db: Session = Depends(get_db)):
+    _site(db, slug)
+    return Response(robots_txt("", index=False), media_type="text/plain")
+
+
+@router.get("/s/{slug}/sitemap.xml")
+def site_sitemap(slug: str, request: Request, db: Session = Depends(get_db)):
+    site = _site(db, slug)
+    _feature(site, "cms")
+    origin = str(request.base_url).rstrip("/")
+    rows = [(absolute_url(origin, path), lastmod) for path, lastmod in listing_paths(_page_rows(db, site), site.features or {}, f"/s/{site.slug}")]
+    return Response(sitemap_xml(rows), media_type="application/xml")
+
+
 @router.get("/s/{slug}/{page_slug}")
 def site_page(slug: str, page_slug: str, request: Request, db: Session = Depends(get_db)):
     site = _site(db, slug)
     _feature(site, "cms")
-    page = _page(db, site, slugify(page_slug, ""))
-    if not page.slug:
+    wanted = keyword_slug(page_slug, "")
+    if not wanted:
         raise HTTPException(status_code=404, detail="That page is not published.")
-    return render(
-        request,
-        "public/page.html",
-        page=page,
-        body=Markup(embed_news(db, site, sanitize_html(page.live_body))),
-        **_context(request, db, site),
-    )
+    page = db.scalar(select(Page).where(Page.site_id == site.id, Page.slug == wanted, Page.is_published.is_(True)))
+    if page is None:
+        alias = db.scalar(select(PageAlias).where(PageAlias.site_id == site.id, PageAlias.slug == wanted))
+        target = db.get(Page, alias.page_id) if alias is not None else None
+        if target is not None and target.site_id == site.id and target.is_published:
+            return RedirectResponse(join_path(f"/s/{site.slug}", target.slug), status_code=301)
+        raise HTTPException(status_code=404, detail="That page is not published.")
+    return _show_page(request, db, site, page)
+
+
+def _show_page(request: Request, db: Session, site: Site, page: Page):
+    body = embed_news(db, site, published_body(page.live_blocks or "", page.live_body or "", _media_ids(db, site)))
+    seo = {
+        "title": page.live_title,
+        "description": page.live_description,
+        "keywords": page.live_keywords,
+        "canonical": canonical_url(site.domain, join_path("", page.slug)),
+        "robots": "noindex, nofollow",
+    }
+    return render(request, "public/page.html", page=page, body=Markup(body), seo=seo, **_context(request, db, site))
+
+
+def _page_rows(db: Session, site: Site) -> list[dict]:
+    rows = []
+    for page in db.scalars(select(Page).where(Page.site_id == site.id, Page.is_published.is_(True)).order_by(Page.nav_order, Page.id)).all():
+        stamp = page.updated_at.date().isoformat() if page.updated_at else ""
+        rows.append({"slug": page.slug, "updated": stamp})
+    return rows
+
+
+def _media_ids(db: Session, site: Site) -> set[int]:
+    return set(db.scalars(select(Media.id).where(Media.site_id == site.id)).all())
 
 
 def _bookable(db: Session, site: Site, request: Request, room_id: int):

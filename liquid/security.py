@@ -209,13 +209,29 @@ def _security_headers(headers: MutableHeaders, path: str = "") -> None:
     headers["X-Frame-Options"] = "DENY"
     headers["Referrer-Policy"] = "no-referrer"
     headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
-    script = "script-src 'self'" if _STUDIO_PATH.fullmatch(path or "") else "script-src 'none'"
+    studio = _STUDIO_PATH.fullmatch(path or "") is not None
+    # The page editor is the only screen that runs a design tool. Its canvas
+    # builds the page in the browser. Every other response, and every generated
+    # site, keeps scripts off.
+    if studio:
+        script = "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+        image = "img-src 'self' data: blob:"
+        frame = "frame-src 'self' blob:"
+        worker = "worker-src 'self' blob:"
+    else:
+        script = "script-src 'none'"
+        image = "img-src 'self' data:"
+        frame = "frame-src 'none'"
+        worker = "worker-src 'none'"
     headers["Content-Security-Policy"] = (
-        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-        f"{script}; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+        "default-src 'self'; "
+        f"{image}; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; "
+        f"{script}; form-action 'self'; {frame}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; {worker}"
     )
     headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    headers["Cross-Origin-Resource-Policy"] = "same-origin"
     headers["X-Permitted-Cross-Domain-Policies"] = "none"
+    headers["X-Robots-Tag"] = "noindex, nofollow"
     headers["Cache-Control"] = "no-store"
     if "server" in headers:
         del headers["server"]

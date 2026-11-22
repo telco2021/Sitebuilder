@@ -9,7 +9,7 @@
   <input id="name" name="name" value="{{ site.name }}" required>
   <div class="row">
     <div><label for="company_name">Company</label><input id="company_name" name="company_name" value="{{ site.company_name }}"></div>
-    <div><label for="domain">Domain label</label><input id="domain" name="domain" value="{{ site.domain }}"></div>
+    <div><label for="domain">Public domain</label><input id="domain" name="domain" value="{{ site.domain }}" placeholder="www.example.com"><p class="muted">Used for the canonical address and the sitemap. Example: www.example.com</p></div>
   </div>
   <label for="tagline">Tagline</label>
   <input id="tagline" name="tagline" value="{{ site.tagline }}">

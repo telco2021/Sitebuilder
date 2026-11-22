@@ -46,6 +46,7 @@ from liquid.models import (
     SmsMessage,
     Student,
 )
+from liquid.seo import public_host
 from liquid.textutil import hex_color, one_line, slugify
 
 
@@ -65,7 +66,7 @@ def apply_theme(site: Site, form) -> None:
 def apply_profile(site: Site, form) -> None:
     site.name = one_line(form.get("name"), 80) or site.name
     site.company_name = one_line(form.get("company_name"), 80)
-    site.domain = one_line(form.get("domain"), 255)
+    site.domain = public_host(form.get("domain"))
     site.language = one_line(form.get("language"), 12) or "en"
     site.tagline = one_line(form.get("tagline"), 180)
     currency = one_line(form.get("currency"), 3).upper()

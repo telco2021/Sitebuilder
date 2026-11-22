@@ -39,7 +39,7 @@ Left out of those modules on purpose:
 
 The application makes no outbound HTTP calls. Sessions are signed, forms require a per-session token, passwords are hashed, and published HTML is reduced to a small set of tags. Generated sites are new Python files plus the published content. They do not wrap the old source.
 
-Page studio is a first-party script served only on the page editor. Every other page, including the public site, keeps `script-src 'none'`. The script builds the design on the screen. The server checks every block again and stores the same safe HTML the rest of the site already publishes. The old visual editor, its Flash plugin, and its file browser were not brought over.
+The page editor is the only Sitebuilder screen that runs a design tool. That screen's content security policy allows the editor script, inline script, and `eval` because the design canvas builds the page in the browser. Every other Sitebuilder response keeps `script-src 'none'`. The server checks the submitted HTML and CSS again, drops scripts, event handlers, and addresses that are not part of the site, and stores that result. A generated site does not include the design tool. Its headers match the public Sitebuilder headers: nosniff, no framing, no scripts, a locked session cookie, the same permissions policy, and a host check when `SITE_ALLOWED_HOSTS` is set. Form posts on a generated site are rate limited. The old visual editor, its Flash plugin, and its file browser were not brought over.
 
 Re-check this file and `tests/test_quarantine.py` before adding any code that came from the old tree.
 

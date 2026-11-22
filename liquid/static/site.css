@@ -33,6 +33,8 @@ textarea { min-height: 110px; }
 .flash.error { background: #fde8e4; }
 .muted { color: #6e655b; }
 .price { font-family: var(--serif); font-size: 28px; }
+.page-body img { max-width: 100%; height: auto; }
+.page-body { overflow-wrap: break-word; }
 .align-center { text-align: center; }
 .align-right { text-align: right; }
 .tone-accent { color: var(--accent); }

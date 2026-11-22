@@ -15,6 +15,8 @@ def test_security_headers_and_no_public_staff_signup(client):
     assert home.headers["x-content-type-options"] == "nosniff"
     assert home.headers["x-frame-options"] == "DENY"
     assert "script-src 'none'" in home.headers["content-security-policy"]
+    assert home.headers["x-robots-tag"] == "noindex, nofollow"
+    assert home.headers["permissions-policy"].startswith("camera=()")
     assert client.get("/admin/users", follow_redirects=False).status_code == 303
     assert client.get("/admin/signup", follow_redirects=False).status_code == 404
 
@@ -228,6 +230,16 @@ def test_generate_writes_a_runnable_site_without_legacy_files(client):
     assert home.status_code == 200
     assert "Stay directly" in home.text
     assert "script-src 'none'" in home.headers["content-security-policy"]
+    assert "unsafe-eval" not in home.headers["content-security-policy"]
+    assert home.headers["permissions-policy"].startswith("camera=()")
+    assert home.headers["cross-origin-opener-policy"] == "same-origin"
+    assert home.headers["cross-origin-resource-policy"] == "same-origin"
+    assert "x-robots-tag" not in home.headers
+    sitemap = generated_client.get("/sitemap.xml")
+    assert sitemap.status_code == 200
+    assert "https://gateway.example/" in sitemap.text
+    robots = generated_client.get("/robots.txt")
+    assert "Sitemap: https://gateway.example/sitemap.xml" in robots.text
     search = generated_client.get("/hotel")
     generated_client.post(
         "/hotel",

@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="{{ site.language }}">
+<html lang="{{ site.language }}"{% if seo and seo.robots == "index, follow" %} itemscope itemtype="https://schema.org/WebPage"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ site.name }}{% endblock %}</title>
+  {% if seo %}{% include "seo.html" %}{% endif %}
   <link rel="stylesheet" href="/static/site.css">
   <style>:root { {{ theme }} }</style>
 </head>

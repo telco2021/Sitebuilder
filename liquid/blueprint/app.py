@@ -12,7 +12,9 @@ import os
 import re
 import secrets
 import sqlite3
+import time
 from datetime import date
+from html import escape
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -49,6 +51,17 @@ SECRET = _secret()
 SERIALIZER = URLSafeTimedSerializer(SECRET, salt="generated-site")
 SITE = BUNDLE["site"]
 FEATURES = SITE["features"]
+REDIRECTS = BUNDLE.get("redirects") or {}
+_HOSTS = {item.strip().lower() for item in os.environ.get("SITE_ALLOWED_HOSTS", "").split(",") if item.strip()}
+_COOKIE_SECURE = os.environ.get("SITE_COOKIE_SECURE", "").lower() in {"1", "true", "yes"}
+try:
+    _SESSION_SECONDS = max(1, int(os.environ.get("SITE_SESSION_HOURS", "8") or "8")) * 3600
+except ValueError:
+    _SESSION_SECONDS = 8 * 3600
+_POST_LIMIT = 40
+_POST_WINDOW = 60
+_BUCKETS: dict[str, list[float]] = {}
+_HOST = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+")
 
 
 def db() -> sqlite3.Connection:
@@ -157,6 +170,7 @@ def render(request: Request, name: str, status: int = 200, **context) -> HTMLRes
         csrf=request.state.session.get("csrf", ""),
         flash=flash,
         theme=_theme(),
+        seo=_seo(request, context.get("page") if isinstance(context.get("page"), dict) else None),
         **context,
     )
     return HTMLResponse(html, status_code=status)
@@ -178,6 +192,66 @@ def page_by_slug(slug: str) -> dict | None:
         if page["slug"] == slug:
             return page
     return None
+
+
+def _client_ip(scope) -> str:
+    client = scope.get("client")
+    if not client:
+        return ""
+    return str(client[0])[:64]
+
+
+def _allow_post(ip: str) -> bool:
+    now = time.monotonic()
+    recent = [stamp for stamp in _BUCKETS.get(ip, []) if now - stamp < _POST_WINDOW]
+    if len(recent) >= _POST_LIMIT:
+        _BUCKETS[ip] = recent
+        return False
+    recent.append(now)
+    _BUCKETS[ip] = recent
+    return True
+
+
+def _public_host(value: str) -> str:
+    text = (value or "").strip().lower()
+    if not text or "@" in text or "\\" in text or " " in text or ":" in text:
+        return ""
+    text = re.sub(r"^https?://", "", text).split("/", 1)[0].split("?", 1)[0].strip(".")
+    if not _HOST.fullmatch(text):
+        return ""
+    return text
+
+
+def _origin(request: Request) -> str:
+    host = _public_host(str(SITE.get("domain") or ""))
+    if host:
+        return f"https://{host}"
+    return str(request.base_url).rstrip("/")
+
+
+def _page_path(slug: str) -> str:
+    return "/" if slug == "home" else f"/{slug}"
+
+
+def _seo(request: Request, page: dict | None) -> dict:
+    if page:
+        title = page.get("title") or SITE["name"]
+        description = page.get("description") or ""
+        keywords = page.get("keywords") or ""
+        path = _page_path(page.get("slug") or "")
+    else:
+        title = SITE["name"]
+        description = SITE.get("tagline") or ""
+        keywords = ""
+        path = request.url.path
+    origin = _origin(request)
+    return {
+        "title": title,
+        "description": description,
+        "keywords": keywords,
+        "canonical": f"{origin}{path if path.startswith('/') else '/' + path}",
+        "robots": "index, follow",
+    }
 
 
 def booked(room_name: str, check_in: str, check_out: str) -> int:
@@ -210,21 +284,44 @@ class SessionMiddleware:
         scope.setdefault("state", {})
         scope["state"]["session"] = load_session(Headers(scope=scope).get("cookie", ""))
 
+        host = Headers(scope=scope).get("host", "").split(":")[0].lower()
+        if _HOSTS and host not in _HOSTS:
+            await Response("Host is not allowed.", status_code=400)(scope, receive, send)
+            return
+        if scope.get("method") == "POST" and not _allow_post(_client_ip(scope)):
+            await Response("Too many requests.", status_code=429)(scope, receive, send)
+            return
+
         async def send_headers(message):
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(raw=list(message.get("headers", [])))
                 token = SERIALIZER.dumps(scope["state"]["session"])
                 cookie = Response()
-                cookie.set_cookie("site_session", token, httponly=True, samesite="lax", path="/")
+                cookie.set_cookie(
+                    "site_session",
+                    token,
+                    max_age=_SESSION_SECONDS,
+                    httponly=True,
+                    samesite="lax",
+                    secure=_COOKIE_SECURE,
+                    path="/",
+                )
                 headers.append("set-cookie", cookie.headers["set-cookie"])
                 headers["X-Content-Type-Options"] = "nosniff"
                 headers["X-Frame-Options"] = "DENY"
                 headers["Referrer-Policy"] = "no-referrer"
+                headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
                 headers["Content-Security-Policy"] = (
                     "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-                    "script-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+                    "font-src 'self' data:; connect-src 'self'; script-src 'none'; form-action 'self'; "
+                    "frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; worker-src 'none'"
                 )
+                headers["Cross-Origin-Opener-Policy"] = "same-origin"
+                headers["Cross-Origin-Resource-Policy"] = "same-origin"
+                headers["X-Permitted-Cross-Domain-Policies"] = "none"
                 headers["Cache-Control"] = "no-store"
+                if "server" in headers:
+                    del headers["server"]
                 message["headers"] = headers.raw
             await send(message)
 
@@ -468,12 +565,38 @@ def generated_gallery(request: Request):
     return render(request, "records.html", heading="Gallery", items=items)
 
 
+@app.get("/robots.txt")
+def robots(request: Request):
+    return Response(f"User-agent: *\nAllow: /\nSitemap: {_origin(request)}/sitemap.xml\n", media_type="text/plain")
+
+
+@app.get("/sitemap.xml")
+def sitemap(request: Request):
+    origin = _origin(request)
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    paths = BUNDLE.get("paths") or [{"path": _page_path(page["slug"]), "updated": page.get("updated") or ""} for page in BUNDLE["pages"]]
+    for item in paths:
+        loc = f"{origin}{item.get('path') or '/'}"
+        row = f"<url><loc>{escape(loc)}</loc>"
+        if item.get("updated"):
+            row += f"<lastmod>{escape(str(item['updated']))}</lastmod>"
+        lines.append(row + "</url>")
+    lines.append("</urlset>")
+    return Response("\n".join(lines) + "\n", media_type="application/xml")
+
+
 @app.get("/{slug}", response_class=HTMLResponse)
 def site_page(slug: str, request: Request):
-    if slug in {"hotel", "search", "static", "media", "news", "banners", "calendar", "services", "gallery", "learn", "coaches", "coupons"}:
+    if slug in {"hotel", "search", "static", "media", "news", "banners", "calendar", "services", "gallery", "learn", "coaches", "coupons", "sitemap", "robots"}:
         return HTMLResponse("Not found", status_code=404)
     page = page_by_slug(slug)
     if page is None:
+        target = REDIRECTS.get(slug)
+        if target:
+            return RedirectResponse(_page_path(target), status_code=301)
         return HTMLResponse("Not found", status_code=404)
     return render(request, "page.html", page=page, body=Markup(page["body"]))
 

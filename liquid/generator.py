@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from liquid.content import embed_news
+from liquid.design import published_body
 from liquid.files import media_path
 from liquid.models import (
     Banner,
@@ -28,6 +29,7 @@ from liquid.models import (
     Media,
     NewsPost,
     Page,
+    PageAlias,
     Product,
     RoomType,
     RvCategory,
@@ -35,6 +37,7 @@ from liquid.models import (
     ServiceOffer,
     Site,
 )
+from liquid.seo import listing_paths
 from liquid.sites import clean_features
 from liquid.textutil import sanitize_html
 
@@ -60,19 +63,24 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
             name = id_to_file.get(int(match.group(1)))
             return f"/media/{name}" if name else match.group(0)
 
-        return _MEDIA_URL.sub(replace, html)
+        rewritten = _MEDIA_URL.sub(replace, html)
+        prefix = f"/s/{site.slug}"
+        return rewritten.replace(prefix + "/", "/").replace(prefix + '"', '/"').replace(prefix + "'", "/'")
 
     pages = []
     parents: dict[int, str] = {}
+    image_ids = set(id_to_file)
     for page in db.scalars(select(Page).where(Page.site_id == site.id, Page.is_published.is_(True)).order_by(Page.nav_order, Page.id)).all():
         parents[page.id] = page.slug
+        updated = page.updated_at.date().isoformat() if page.updated_at else ""
         pages.append(
             {
                 "slug": page.slug,
                 "title": page.live_title,
-                "body": rewrite(embed_news(db, site, sanitize_html(page.live_body))),
+                "body": rewrite(embed_news(db, site, published_body(page.live_blocks or "", page.live_body or "", image_ids))),
                 "keywords": page.live_keywords,
                 "description": page.live_description,
+                "updated": updated,
                 "show_in_nav": page.show_in_nav,
                 "nav_order": page.nav_order,
                 "parent_slug": None,
@@ -215,6 +223,8 @@ def build_bundle(db: Session, site: Site, upload_root: Path, media_dest: Path | 
             "features": clean_features(site.features),
         },
         "pages": pages,
+        "redirects": _redirects(db, site),
+        "paths": [{"path": path, "updated": updated} for path, updated in listing_paths(pages, clean_features(site.features), "")],
         "property": property_payload,
         "rooms": rooms,
         "categories": categories,
@@ -254,6 +264,15 @@ def generate_site(db: Session, site: Site, upload_root: Path, generated_root: Pa
     return destination, Path(archive)
 
 
+def _redirects(db: Session, site: Site) -> dict[str, str]:
+    redirects: dict[str, str] = {}
+    for alias in db.scalars(select(PageAlias).where(PageAlias.site_id == site.id)).all():
+        target = db.get(Page, alias.page_id)
+        if target is not None and target.site_id == site.id and target.is_published and target.slug != alias.slug:
+            redirects[alias.slug] = target.slug
+    return redirects
+
+
 def _readme(site: Site) -> str:
     return f"""# {site.name}
 
@@ -275,6 +294,16 @@ python -m waitress --listen=127.0.0.1:8080 app:app
 ```
 
 Put a TLS proxy in front before exposing the site. The session secret is created on first launch as `.secret`.
+
+Set these before the site is reachable on the public internet:
+
+```bash
+SITE_ALLOWED_HOSTS=www.example.com
+SITE_COOKIE_SECURE=true
+SITE_SESSION_HOURS=8
+```
+
+`SITE_ALLOWED_HOSTS` is the domain visitors use. Leave it empty only while you are trying the site on this computer. `SITE_COOKIE_SECURE=true` keeps the sign-in cookie on HTTPS. The security headers on this site match Sitebuilder: no scripts, no framing, and a locked session cookie.
 
 Card numbers and security codes are not stored. A booking keeps the brand, last four digits, expiry, and a payment reference.
 """

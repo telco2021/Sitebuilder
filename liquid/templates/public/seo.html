@@ -1,0 +1,10 @@
+{% if seo.description %}<meta name="description" content="{{ seo.description }}"{% if seo.robots == "index, follow" %} itemprop="description"{% endif %}>{% endif %}
+{% if seo.keywords %}<meta name="keywords" content="{{ seo.keywords }}">{% endif %}
+<meta name="robots" content="{{ seo.robots }}">
+{% if seo.canonical %}<link rel="canonical" href="{{ seo.canonical }}"{% if seo.robots == "index, follow" %} itemprop="url"{% endif %}>{% endif %}
+{% if seo.robots == "index, follow" %}<meta itemprop="name" content="{{ seo.title }}">{% endif %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site.name }}">
+<meta property="og:title" content="{{ seo.title }}">
+{% if seo.description %}<meta property="og:description" content="{{ seo.description }}">{% endif %}
+{% if seo.canonical %}<meta property="og:url" content="{{ seo.canonical }}">{% endif %}

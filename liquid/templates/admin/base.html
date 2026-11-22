@@ -16,6 +16,7 @@
         {% if user and user.role in ["owner", "publisher"] %}<a href="/admin/audit">Audit</a>{% endif %}
         {% if user and user.role == "owner" %}<a href="/admin/outbox">Outbox</a>{% endif %}
         <a href="/admin/account">Password</a>
+        {% if user %}<a href="/admin/guide">How to use</a>{% endif %}
       </nav>
       {% if user %}
       <form method="post" action="/admin/logout">
@@ -26,6 +27,7 @@
       {% endif %}
     </aside>
     <main class="main">
+      {% if guide %}<p class="guide-bar"><a class="btn secondary" href="/admin/guide/{{ guide.slug }}">Help</a></p>{% endif %}
       {% if flash %}<div class="flash {{ flash.level }}">{{ flash.message }}</div>{% endif %}
       {% block body %}{% endblock %}
     </main>

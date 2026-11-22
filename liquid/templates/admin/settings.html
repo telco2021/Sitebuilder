@@ -29,7 +29,7 @@
   {% if user.role == "owner" %}
   <h2>Features</h2>
   {% for key, label, group, detail in features %}
-  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if site.features.get(key) %}checked{% endif %}> {{ label }} <span class="muted">({{ group }})</span></label>
+  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if site.features.get(key) %}checked{% endif %}> {{ label }} <span class="muted">({{ group }})</span> <a href="/admin/guide/{{ guide_slug_for_feature(key) }}">Help</a></label>
   {% endfor %}
   {% endif %}
   <p><button class="btn" type="submit">Save settings</button></p>

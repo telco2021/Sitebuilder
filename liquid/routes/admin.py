@@ -18,6 +18,7 @@ from liquid.constants import COUNTRIES, FEATURES, RESERVED_PAGE_SLUGS
 from liquid.db import get_db
 from liquid.files import media_path, store_upload
 from liquid.generator import generate_site
+from liquid.guide import article, grouped_guides, related_guides
 from liquid.hotel import cancel_reservation
 from liquid.mailer import queue_mail
 from liquid.models import (
@@ -205,6 +206,21 @@ async def reset_submit(token: str, request: Request, db: Session = Depends(get_d
     rotate_session(request)
     flash(request, "ok", "Password updated. Sign in with it.")
     return redirect("/admin/login")
+
+
+@router.get("/admin/guide")
+def guide_index(request: Request, db: Session = Depends(get_db)):
+    _guard(request, db)
+    return render(request, "admin/guide_index.html", groups=grouped_guides())
+
+
+@router.get("/admin/guide/{slug}")
+def guide_page(slug: str, request: Request, db: Session = Depends(get_db)):
+    _guard(request, db)
+    guide = article(slug)
+    if guide is None:
+        raise HTTPException(status_code=404, detail="No help article for that feature.")
+    return render(request, "admin/guide.html", article=guide, related=related_guides(guide))
 
 
 @router.get("/admin")

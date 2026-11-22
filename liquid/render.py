@@ -9,6 +9,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
+from liquid.guide import article_for_path, guide_slug_for_feature
 from liquid.models import Site
 from liquid.textutil import hex_color
 
@@ -22,6 +23,7 @@ def _money(cents: int, currency: str = "USD") -> str:
 
 
 TEMPLATES.env.filters["money"] = _money
+TEMPLATES.env.globals["guide_slug_for_feature"] = guide_slug_for_feature
 
 
 def flash(request: Request, level: str, message: str) -> None:
@@ -38,6 +40,7 @@ def render(request: Request, name: str, status: int = 200, **context):
     context.setdefault("csrf", request.state.session.get("csrf", ""))
     context.setdefault("flash", request.state.session.pop("flash", None))
     context.setdefault("user", getattr(request.state, "user", None))
+    context.setdefault("guide", article_for_path(request.url.path))
     return TEMPLATES.TemplateResponse(request, name, context, status_code=status)
 
 

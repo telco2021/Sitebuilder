@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ article.title }}{% endblock %}
+{% block body %}
+<p><a href="/admin/guide">All help topics</a></p>
+<h1>{{ article.title }}</h1>
+<p>{{ article.summary }}</p>
+<ol class="guide-steps">
+  {% for step in article.steps %}
+  <li>{{ step }}</li>
+  {% endfor %}
+</ol>
+{% for note in article.notes %}
+<p class="guide-note muted">{{ note }}</p>
+{% endfor %}
+{% if related %}
+<h2>Related</h2>
+<ul>
+  {% for item in related %}
+  <li><a href="/admin/guide/{{ item.slug }}">{{ item.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

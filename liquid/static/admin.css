@@ -42,6 +42,10 @@ textarea { min-height: 140px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
 .muted { color: var(--muted); }
+.guide-bar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+.guide-steps { margin: 0 0 18px; padding-left: 1.2rem; }
+.guide-steps li { margin: 8px 0; }
+.guide-note { margin-top: 0; }
 .badge { display: inline-block; border-radius: 999px; padding: 2px 8px; background: #efe4d4; font-size: 12px; }
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 .login .card { width: min(440px, 100%); }

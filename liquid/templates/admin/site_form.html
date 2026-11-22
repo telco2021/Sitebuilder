@@ -19,7 +19,7 @@
   {% if user.role == "owner" %}
   <h2>Features</h2>
   {% for key, label, group, detail in features %}
-  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if key in ["cms", "menus", "search"] %}checked{% endif %}> {{ label }} — {{ detail }}</label>
+  <label class="check"><input type="checkbox" name="feature_{{ key }}" value="yes" {% if key in ["cms", "menus", "search"] %}checked{% endif %}> {{ label }} — {{ detail }} <a href="/admin/guide/{{ guide_slug_for_feature(key) }}">Help</a></label>
   {% endfor %}
   {% else %}
   <p class="muted">The site starts with pages, menus, and search. An owner can enable more features.</p>

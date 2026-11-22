@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+{% block title %}How to use{% endblock %}
+{% block body %}
+<h1>How to use Sitebuilder</h1>
+<p>Choose a feature. The guide explains what that screen does and the steps to use it.</p>
+{% for group, items in groups %}
+<section class="card">
+  <h2>{{ group }}</h2>
+  <ul>
+    {% for item in items %}
+    <li><a href="/admin/guide/{{ item.slug }}">{{ item.title }}</a> — {{ item.summary }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

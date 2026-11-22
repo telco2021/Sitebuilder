@@ -11,7 +11,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, JSONResponse
 
 from liquid.access import LoginRequired, block, field, integer, posted, require_role, require_user, site_or_404
 from liquid.audit import audit
@@ -56,7 +56,8 @@ from liquid.security import (
     verify_password,
 )
 from liquid.sites import apply_profile, apply_theme, clean_features, delete_site, unique_slug
-from liquid.studio import editor_blocks, parse_blocks, render_blocks
+from liquid.canvas import document_for_editor, parse_canvas, render_canvas
+from liquid.studio import parse_blocks, render_blocks
 from liquid.textutil import FormError, parse_email, redact_secrets, sanitize_html, slugify
 
 router = APIRouter()
@@ -381,7 +382,12 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
     page.show_in_nav = form.get("show_in_nav") == "yes"
     page.draft_title = title
     try:
-        if field(form, "studio_mode", 10) == "design":
+        mode = field(form, "studio_mode", 12)
+        if mode == "canvas":
+            document = parse_canvas(form.get("blocks"), _image_ids(db, site))
+            page.draft_blocks = json.dumps(document)
+            page.draft_body = render_canvas(document, site.slug)
+        elif mode == "design":
             designed = parse_blocks(form.get("blocks"), _image_ids(db, site))
             page.draft_blocks = json.dumps(designed)
             page.draft_body = render_blocks(designed)
@@ -405,6 +411,41 @@ async def page_save(site_id: int, request: Request, db: Session = Depends(get_db
     db.commit()
     flash(request, "ok", message)
     return redirect(f"/admin/sites/{site.id}/pages/{page.id}")
+
+
+@router.post("/admin/sites/{site_id:int}/media")
+async def media_upload(site_id: int, request: Request, db: Session = Depends(get_db)):
+    """Picture upload used by the page editor. Returns the new picture instead of redirecting."""
+
+    user = _guard(request, db, "publisher", "editor")
+    site = _featured(db, site_id, "cms")
+    form = await posted(request)
+    upload = form.get("upload")
+    if upload is None or not hasattr(upload, "read"):
+        return JSONResponse({"detail": "Choose a picture to upload."}, status_code=400)
+    payload = await upload.read()
+    try:
+        stored, content_type, original = store_upload(
+            Path(request.app.state.settings.upload_dir),
+            site.id,
+            getattr(upload, "filename", ""),
+            payload,
+            request.app.state.settings.max_upload_bytes,
+        )
+    except FormError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    if not content_type.startswith("image/"):
+        try:
+            media_path(Path(request.app.state.settings.upload_dir), site.id, stored).unlink()
+        except FileNotFoundError:
+            pass
+        return JSONResponse({"detail": "Upload a PNG, JPEG, GIF, or WebP image."}, status_code=400)
+    item = Media(site_id=site.id, original_name=original or stored, stored_name=stored, content_type=content_type, size_bytes=len(payload))
+    db.add(item)
+    db.flush()
+    audit(db, request, request.app.state.settings, user.email, "file.upload", f"{site.slug}/{item.id}", content_type)
+    db.commit()
+    return JSONResponse({"id": item.id, "name": item.original_name, "url": f"/media/{item.id}"})
 
 
 @router.get("/admin/sites/{site_id:int}/files")
@@ -879,17 +920,16 @@ def _image_ids(db: Session, site: Site) -> set[int]:
 
 
 def _studio_view(db: Session, site: Site, page: Page | None) -> dict:
-    blocks = editor_blocks(page.draft_blocks if page else "[]")
     images = [
         {"id": row.id, "name": row.original_name}
         for row in db.scalars(select(Media).where(Media.site_id == site.id, Media.content_type.like("image/%")).order_by(Media.id)).all()
     ]
-    mode = "design" if blocks else "html"
-    return {
-        "studio_mode": mode,
-        "blocks_json": json.dumps(blocks),
-        "studio_initial": {"mode": mode, "blocks": blocks, "images": images},
-    }
+    document = document_for_editor(
+        page.draft_blocks if page else "",
+        page.draft_body if page else "",
+        {image["id"] for image in images},
+    )
+    return {"canvas": document, "images": images}
 
 
 def _publish(page: Page) -> None:

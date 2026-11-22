@@ -45,6 +45,18 @@ _ATTRS = {
     "td": ["colspan", "rowspan"],
     "th": ["colspan", "rowspan"],
 }
+_SAFE_CLASS = {
+    "align-left",
+    "align-center",
+    "align-right",
+    "tone-accent",
+    "spacer",
+    "size-small",
+    "size-medium",
+    "size-large",
+    "columns",
+}
+_CLASS_TAGS = {"p", "h2", "h3", "ul", "ol", "table", "hr"}
 
 
 class FormError(Exception):
@@ -76,13 +88,22 @@ def hex_color(value: object, default: str) -> str:
     return default
 
 
+def _allow_attr(tag: str, name: str, value: str) -> bool:
+    if name in _ATTRS.get(tag, []):
+        return True
+    if name != "class" or tag not in _CLASS_TAGS:
+        return False
+    parts = (value or "").split()
+    return bool(parts) and all(part in _SAFE_CLASS for part in parts)
+
+
 def sanitize_html(value: str) -> str:
     without_scripts = _SCRIPT.sub("", value)
     without_scripts = _SCRIPT_OPEN.sub("", without_scripts)
     return bleach.clean(
         without_scripts,
         tags=_TAGS,
-        attributes=_ATTRS,
+        attributes=_allow_attr,
         protocols=["http", "https", "mailto"],
         strip=True,
     )

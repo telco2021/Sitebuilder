@@ -32,14 +32,16 @@ def test_page_studio_publishes_a_designed_page(client):
 
     form = client.get("/admin/sites/1/pages/new")
     assert form.status_code == 200
-    assert "Page studio" in form.text
-    assert 'src="/static/studio.js"' in form.text
+    assert "Page editor" in form.text
+    assert 'src="/static/canvas.js"' in form.text
+    assert "Drag a part onto the page" in form.text
     assert "script-src 'self'" in form.headers["content-security-policy"]
     assert "script-src 'none'" not in form.headers["content-security-policy"]
 
     existing = client.get("/admin/sites/1/pages/1")
     assert "Stay directly with the hotel" in existing.text
-    assert 'data-studio-tab="html"' in existing.text
+    assert "Parts" in existing.text
+    assert "Search" in existing.text
 
     saved = client.post(
         "/admin/sites/1/pages",

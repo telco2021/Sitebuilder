@@ -33,6 +33,14 @@ textarea { min-height: 110px; }
 .flash.error { background: #fde8e4; }
 .muted { color: #6e655b; }
 .price { font-family: var(--serif); font-size: 28px; }
+.align-center { text-align: center; }
+.align-right { text-align: right; }
+.tone-accent { color: var(--accent); }
+hr.spacer { border: 0; height: 0; }
+hr.spacer.size-small { margin: 12px 0; }
+hr.spacer.size-medium { margin: 28px 0; }
+hr.spacer.size-large { margin: 56px 0; }
+table.columns td { width: 50%; vertical-align: top; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid #eadfce; vertical-align: top; }
 .platform { background: #14241c; color: #f4ecdf; }

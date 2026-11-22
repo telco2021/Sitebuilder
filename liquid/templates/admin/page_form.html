@@ -1,12 +1,13 @@
 {% extends "admin/base.html" %}
-{% block title %}Page studio{% endblock %}
+{% block title %}Page editor{% endblock %}
 {% block body %}
 <h1>{% if page %}{{ page.draft_title }}{% else %}New page{% endif %}</h1>
+<p class="muted">Drag a part onto the page, or click it. The page on the right edits the part you select. Search is how this page appears on Google.</p>
 <div class="subnav">{% for label, path in sections %}<a href="{{ path }}">{{ label }}</a>{% endfor %}</div>
 <form id="page-form" method="post" action="{% if page %}/admin/sites/{{ site.id }}/pages/{{ page.id }}{% else %}/admin/sites/{{ site.id }}/pages{% endif %}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <input type="hidden" name="studio_mode" id="studio_mode" value="{{ studio_mode }}">
-  <input type="hidden" name="blocks" id="blocks" value="{{ blocks_json }}">
+  <input type="hidden" name="studio_mode" value="canvas">
+  <textarea name="blocks" id="blocks" hidden>{{ canvas|tojson }}</textarea>
   <div class="card">
     <label for="title">Title</label>
     <input id="title" name="title" value="{{ page.draft_title if page else '' }}" required>
@@ -22,35 +23,52 @@
       {% endfor %}
     </select>
     <label class="check"><input type="checkbox" name="show_in_nav" value="yes" {% if not page or page.show_in_nav %}checked{% endif %}> Show in the menu</label>
-    <label for="keywords">Keywords</label>
-    <input id="keywords" name="keywords" value="{{ page.draft_keywords if page else '' }}">
-    <label for="description">Description</label>
-    <input id="description" name="description" value="{{ page.draft_description if page else '' }}">
   </div>
-  <div id="studio">
-    <div class="studio-tabs">
-      <button class="btn secondary" type="button" data-studio-tab="design" aria-pressed="{{ 'true' if studio_mode == 'design' else 'false' }}">Design</button>
-      <button class="btn secondary" type="button" data-studio-tab="html" aria-pressed="{{ 'true' if studio_mode == 'html' else 'false' }}">HTML</button>
+  <div id="editor">
+    <div class="editor-bar">
+      <button class="btn secondary" id="editor-undo" type="button" disabled>Undo</button>
+      <button class="btn secondary" id="editor-redo" type="button" disabled>Redo</button>
+      <button class="btn secondary" id="editor-desktop" type="button" aria-pressed="true">Desktop</button>
+      <button class="btn secondary" id="editor-phone" type="button" aria-pressed="false">Phone</button>
     </div>
-    <div id="studio-layout" class="studio" {% if studio_mode != 'design' %}hidden{% endif %}>
-      <aside class="studio-palette">
-        <h2>Add</h2>
-        <button class="btn secondary" type="button" data-add="heading">Heading</button>
-        <button class="btn secondary" type="button" data-add="text">Text</button>
-        <button class="btn secondary" type="button" data-add="image">Image</button>
-        <button class="btn secondary" type="button" data-add="button">Button</button>
-        <button class="btn secondary" type="button" data-add="list">List</button>
-        <button class="btn secondary" type="button" data-add="quote">Quote</button>
-        <button class="btn secondary" type="button" data-add="columns">Columns</button>
-        <button class="btn secondary" type="button" data-add="divider">Divider</button>
+    <div class="editor-panes">
+      <aside class="editor-palette">
+        <h2>Parts</h2>
+        <button class="btn secondary" type="button" draggable="true" data-add="heading">Heading</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="text">Text</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="image">Image</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="button">Button</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="list">List</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="columns">Columns</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="spacer">Spacer</button>
+        <button class="btn secondary" type="button" draggable="true" data-add="form">Form</button>
       </aside>
-      <div id="studio-stage" class="studio-stage" style="background: {{ site.color_paper }}; color: {{ site.color_text }}"></div>
-      <aside id="studio-inspector" class="studio-inspector"></aside>
-    </div>
-    <div id="studio-html" {% if studio_mode != 'html' %}hidden{% endif %}>
-      <label for="body">HTML</label>
-      <textarea id="body" name="body">{{ page.draft_body if page else '' }}</textarea>
-      <p class="muted">Scripts are removed when the page is saved. Design and HTML are two ways to edit the same page. Saving Design replaces the HTML with the blocks on the canvas.</p>
+      <div id="editor-frame" class="editor-frame">
+        <div class="editor-sitehead">{{ site.name }} <span>Header, shared by every page</span></div>
+        <div id="editor-canvas" class="editor-canvas" style="background: {{ site.color_paper }}; color: {{ site.color_text }}"></div>
+        <div class="editor-sitefoot">Footer, shared by every page</div>
+      </div>
+      <aside class="editor-inspector">
+        <div class="editor-tabs">
+          <button class="btn secondary" type="button" data-tab="content" aria-pressed="true">Content</button>
+          <button class="btn secondary" type="button" data-tab="style" aria-pressed="false">Style</button>
+          <button class="btn secondary" type="button" data-tab="search" aria-pressed="false">Search</button>
+        </div>
+        <div id="inspector-fields"></div>
+        <div id="inspector-search" hidden>
+          <h2>Search</h2>
+          <label for="keywords">Keywords</label>
+          <input id="keywords" name="keywords" value="{{ page.draft_keywords if page else '' }}">
+          <label for="description">Description</label>
+          <input id="description" name="description" value="{{ page.draft_description if page else '' }}">
+          <p class="muted">This is the line under the title in a search result.</p>
+          <div class="search-preview">
+            <div id="search-title" class="search-title"></div>
+            <div id="search-url" class="search-url"></div>
+            <div id="search-desc" class="search-desc"></div>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
   <p>
@@ -67,6 +85,6 @@
   <button class="btn danger" name="action" value="delete" type="submit">Delete page</button>
 </form>
 {% endif %}
-<script type="application/json" id="studio-initial">{{ studio_initial|tojson }}</script>
-<script src="/static/studio.js"></script>
+<script type="application/json" id="editor-initial">{{ {"document": canvas, "images": images, "uploadUrl": "/admin/sites/%s/media"|format(site.id), "publicPath": "/s/%s"|format(site.slug)}|tojson }}</script>
+<script src="/static/canvas.js"></script>
 {% endblock %}
